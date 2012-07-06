@@ -1,0 +1,21 @@
+# Create directories if they don't exist yet
+function create_dirs() {
+    local dir
+    for dir in "$@"
+    do 
+        if [ ! -d "$dir" ]; then
+            mkdir "$dir"
+        fi
+    done
+}
+
+# Check if programs are installed
+function check_prog() {
+    local prog
+    for prog in "$@"
+    do
+        local progloc=`which $prog` || 
+            { echo "$prog not in your path" >&2; exit 1; }
+        echo "Using: $progloc"
+    done
+}

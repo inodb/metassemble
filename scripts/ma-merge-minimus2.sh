@@ -11,6 +11,8 @@ EOF
 
 set -o errexit
 set -o nounset
+# From: http://tinyurl.com/85qrydz
+SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # Parse options
 while getopts ":h" opt; do
@@ -35,18 +37,15 @@ then
     echo "$HELPDOC"
     exit 1
 fi
-
 if [ ! -d $1 ]; then
     mkdir $1
 fi
 OUTDIR=${1%/}
 CURDIR=`pwd`
-# From: http://tinyurl.com/85qrydz
-SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 echo 'Concatenate contigs'
 cat ${@:2} > $OUTDIR/concatenated.fasta
-echo `grep -c '>' $OUTDIR/concatenated.fasta` "contigs"
+echo `grep -c '>' $OUTDIR/concatenated.fasta` 'contigs'
 echo 'Done'
 
 # Rename the contigs (have to be unique names) and only keep contigs >= 200bp
@@ -56,7 +55,7 @@ python $SCRIPTDIR/ma-reads-rename.py concatenated.fasta > concatenated-min200-re
 #if [ $? -eq 1 ]
 #    exit 1
 #fi
-echo `grep -c '>' concatenated.fasta` "contigs"
+echo `grep -c '>' concatenated.fasta` 'contigs'
 echo 'Done'
 
 # Remove 99% similar sequences else minimus2 has some issues merging contigs
