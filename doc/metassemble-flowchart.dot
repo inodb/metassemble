@@ -1,0 +1,113 @@
+digraph assembly_approaches {
+    rankdir=LR
+    // Input (box)
+    subgraph cluster_reads {
+        label="Input reads"
+        illumina_pe [shape = box];
+    }
+    subgraph cluster_process_reads {
+        label="Process reads"
+        duplicate_removal [shape = diamond];
+        illumina_pe -> duplicate_removal;
+        quality_trim [shape = diamond];
+        duplicate_removal -> quality_trim;
+        duplicate_removal -> processed_reads;
+        processed_reads [shape = box];
+        quality_trim -> processed_reads;
+    }
+    // Output (box)
+    contigs [shape = box color=red];
+    unitigs [shape = box];
+
+    // Programs (diamonds)
+    subgraph cluster_de_bruijn {
+        label="De Bruijn Graph"
+        idba [shape = diamond];
+        velvet [shape = diamond];
+        velvet -> meta_velvet;
+        meta_velvet [shape = diamond];
+        // de bruijn specific output
+        subgraph cluster_de_bruijn_output {
+            label="Output";
+            unitigs_single_kmer [shape = box];
+            unitigs_multiple_kmer [shape = box];
+            contigs_multiple_kmer [shape = box];
+            contigs_single_kmer [shape = box];
+            scaffolds_single_kmer [shape = box];
+        }
+    }
+    subgraph cluster_olc {
+        label="Overlap Layout Consensus"
+        newbler [shape = diamond];
+        mira [shape = diamond];
+    }
+    subgraph cluster_merging {
+        label="Merging contigs/unitigs";
+        newbler2 [label="newbler" shape=diamond];
+        cd_hit [shape = diamond];
+        minimus2 [shape = diamond];
+        merged_contigs [shape = box];
+    }
+    subgraph cluster_scaffold {
+        label="Scaffolding"
+        bwa [shape = diamond];
+        contigs_with_linkage_info [shape = box];
+        bambus2 [shape = diamond];
+        besst [shape = diamond];
+        scaffolds [shape = box color=red];
+    }
+
+    // newbler
+    processed_reads -> newbler;
+    newbler -> contigs;
+    unitigs -> newbler2;
+    contigs -> newbler2;
+    newbler2 -> merged_contigs;
+
+    // mira
+    processed_reads -> mira;
+    mira -> contigs;
+
+    // velvet
+    processed_reads -> velvet;
+    velvet -> unitigs_single_kmer;
+    velvet -> contigs_single_kmer;
+    velvet -> scaffolds_single_kmer;
+
+    // idba
+    processed_reads -> idba;
+    idba -> contigs_multiple_kmer;
+    idba -> unitigs_multiple_kmer;
+
+    // meta_velvet
+    meta_velvet -> contigs_single_kmer;
+    meta_velvet -> unitigs_single_kmer;
+
+    // redirect de bruijn graph output
+    unitigs_single_kmer -> unitigs;
+    unitigs_multiple_kmer -> unitigs;
+    contigs_single_kmer -> contigs;
+    contigs_multiple_kmer -> contigs;
+    scaffolds_single_kmer -> scaffolds;
+
+    // minimus2 
+    unitigs -> cd_hit;
+    contigs -> cd_hit;
+    cd_hit -> minimus2;
+    minimus2 -> merged_contigs;
+
+    // bwa
+    contigs -> bwa;
+    merged_contigs -> bwa;
+    unitigs -> bwa;
+    processed_reads -> bwa;
+    bwa -> contigs_with_linkage_info;
+
+    // bambus2
+    contigs_with_linkage_info -> bambus2;
+    bambus2 -> scaffolds;
+    
+    // besst
+    contigs_with_linkage_info -> besst;
+    besst -> scaffolds;
+}

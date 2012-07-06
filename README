@@ -1,0 +1,35 @@
+MetAssemble
+===========
+
+MetAssemble is a colection of scripts for executing various metagenomic
+assembly programs. Several pipelines will be available to turn a set of reads
+from an evironmental sample to a full-blown assembly.
+
+Currently supported input:
+- Illumina fastq CASAVA v1.8 paired end reads
+
+Features four steps of the metagenomic assembly pipeline:
+1) Read processing.
+- PCR duplicate removal (Not implemented yet)
+- Quality trimming
+    * Trim.pl
+    http://wiki.bioinformatics.ucdavis.edu/index.php/Trim.pl
+2) Assembling contigs
+- De Bruijn graph
+    * Velvet 1.2.01
+    http://www.ebi.ac.uk/~zerbino/velvet/
+3) Merging contigs
+- With cd-hit and minimus2
+http://ged.msu.edu/angus/metag-assembly-2011/velvet-multik.html
+    * cd-hit-est
+    http://weizhong-lab.ucsd.edu/cd-hit/
+    * Minimus2 from Amos
+    http://sourceforge.net/apps/mediawiki/amos/index.php?title=Minimus2
+4) Scaffolding
+- Construct linkage information by mapping reads to contigs
+    * BWA
+    http://bio-bwa.sourceforge.net/
+- Scaffold contigs
+    * Bambus2
+    http://sourceforge.net/apps/mediawiki/amos/index.php?title=Bambus2
+    * BESST (not released yet)
