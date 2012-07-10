@@ -1,9 +1,9 @@
 MetAssemble
 ===========
 
-MetAssemble is a colection of scripts for executing various metagenomic
+MetAssemble is a collection of scripts for executing various metagenomic
 assembly programs. Several pipelines will be available to turn a set of reads
-from an evironmental sample to a full-blown assembly.
+from an environmental sample to a full-blown assembly.
 
 Currently supported input:
 - Illumina fastq CASAVA v1.8 paired end reads
