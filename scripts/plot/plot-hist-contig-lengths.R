@@ -8,14 +8,14 @@ combined dataset is used to compute the number of bins using Sturges' formula.
 Each histogram is then plotted on top of each other using the calculated number
 of bins for all datapoints combined.
 "
+suppressMessages({
+        library(optparse)
+        library(ShortRead)
+        library(ggplot2)
+})
 
 # Parse arguments
 parse_arguments <- function() {
-  suppressMessages({
-    library(optparse)
-    library(ShortRead)
-    library(ggplot2)
-  })
   option_list <- list()
   option_parser <- OptionParser(option_list=option_list,
                      usage=usage.string)
