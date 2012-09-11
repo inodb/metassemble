@@ -13,12 +13,13 @@ set -o errexit
 set -o nounset
 # From: http://tinyurl.com/85qrydz
 SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+source $SCRIPTDIR/../global-functions.incl
 
 # Parse options
 while getopts ":h" opt; do
     case $opt in
         h)
-            echo '$HELPDOC'
+            echo "$HELPDOC"
             exit 0
             ;;
         \?)
@@ -43,6 +44,9 @@ fi
 OUTDIR=${1%/}
 CURDIR=`pwd`
 
+check_prog toAmos minimus2 cd-hit-est
+create_dirs $OUTDIR
+
 echo 'Concatenate contigs'
 cat ${@:2} > $OUTDIR/concatenated.fasta
 echo `grep -c '>' $OUTDIR/concatenated.fasta` 'contigs'
@@ -51,10 +55,9 @@ echo 'Done'
 # Rename the contigs (have to be unique names) and only keep contigs >= 200bp
 cd $OUTDIR
 echo 'Rename contigs (to make sure they are unique)'
-python $SCRIPTDIR/ma-reads-rename.py concatenated.fasta > concatenated-min200-rename.fasta
-#if [ $? -eq 1 ]
-#    exit 1
-#fi
+#TODO: this is some weird uppmax thing that I don't quite follow yet
+module load biopython
+python $SCRIPTDIR/../process-reads/reads-rename.py -oc 200 concatenated.fasta > concatenated-min200-rename.fasta
 echo `grep -c '>' concatenated.fasta` 'contigs'
 echo 'Done'
 
@@ -64,7 +67,8 @@ echo 'Done'
 echo 'Remove similar sequences'
 cd-hit-est -i concatenated-min200-rename.fasta \
            -o concatenated-min200-rename-derep.fasta \
-           -c 0.99
+           -c 0.99 \
+           -M 7500
 echo 'Done'
 
 # Merge contigs with minimus2

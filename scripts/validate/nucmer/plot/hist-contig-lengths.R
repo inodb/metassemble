@@ -88,7 +88,6 @@ hists <- tapply(Data$contiglength, Data$assembly,
 print(hists)
 ll <- sapply(hists,nrow)
 hists <- do.call(rbind, hists)
-browser()
 hists$fac <- rep(as.character(labels),ll)
 png("test.png")
 print(qplot(br,co,data=hists,geom="step",colour=as.character(fac),

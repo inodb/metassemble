@@ -14,7 +14,8 @@ function check_prog() {
     local prog
     for prog in "$@"
     do
-        local progloc=`which $prog` || 
+        local progloc
+        progloc=`which $prog 2>/dev/null` ||
             { echo "$prog not in your path" >&2; exit 1; }
         echo "Using: $progloc"
     done

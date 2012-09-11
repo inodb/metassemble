@@ -3,10 +3,10 @@
 # https://github.com/ctb/khmer/blob/master/sandbox/multi-rename.py
 """Rename accessions. New names go from '>[prefix:]1[:original name]' to
 '>[prefix:]n[:original name]' where n is the number of fasta sequences, [prefix:]
-an optional prefix po and [:original name] the optional original accession.
+an optional prefix and [:original name] the optional original accession.
 
 Usage:
-    ma-reads-rename.py [options] <fastafile>
+    reads-rename.py [options] <fastafile>
 Options:
     -c/--cutoff INT     Specify the cutoff [default 0].
     -h/--help           This help doc.

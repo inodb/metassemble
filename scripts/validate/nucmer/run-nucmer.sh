@@ -2,7 +2,7 @@ set -o errexit
 set -o nounset
 # From: http://tinyurl.com/85qrydz
 SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-source $SCRIPTDIR/global-functions.incl
+source $SCRIPTDIR/../../global-functions.incl
 
 if [[ -f $1 ]]; then
     REF=$1
@@ -23,5 +23,5 @@ check_prog nucmer show-coords
 nucmer --maxmatch --prefix=$OUTPUTBASE $REF $QUERY
 # delta-filter 
 show-coords -rclTH $OUTPUTBASE.delta > $OUTPUTBASE.coords
-Rscript $SCRIPTDIR/stats/ma-stats-nucmer-coords.R $QUERY $OUTPUTBASE.coords \
-    > $OUTPUTBASE.validate
+delta-filter -g $OUTPUTBASE.delta > $OUTPUTBASE.gdelta
+show-coords -rclTH $OUTPUTBASE.delta > $OUTPUTBASE.gcoords
