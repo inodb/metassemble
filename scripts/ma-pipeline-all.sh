@@ -41,7 +41,7 @@ function is_in_array() {
     local step
 
     for step in "${@:2}"; do
-        if [ $1 -eq $step ]; then
+        if [ "$1" = "$step" ]; then
             return 0
         fi
     done
