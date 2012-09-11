@@ -140,7 +140,7 @@ else
     exit 1
 fi
 FASTQBASE=$3
-OUT=$(pwd -P $4)/$4
+OUT=$(cd $4 && pwd)
 if $DELETEOLD; then
     rm -rf "$OUT"
 fi

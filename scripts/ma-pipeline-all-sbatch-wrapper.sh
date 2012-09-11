@@ -51,14 +51,14 @@ else
     exit 1
 fi
 FASTQBASE=$3
-OUT=$(pwd -P $4)/$4
+OUT=$(cd $4 && pwd)
 
 function ma_pipeline_wrapper() {
     sbatch -J $1.$FASTQBASE --output=slurm-$1.out --error=slurm-$1.err -A b2010008 $2 /bubo/home/h16/inod/bin/sbatch_job bash $SCRIPTDIR/ma-pipeline-all.sh -s $3 $FASTQ1 $FASTQ2 $FASTQBASE $OUT | cut -d' ' -f4
 }
 
 set -o xtrace
-trimmingjobid="$(ma_pipeline_wrapper qtrim "-t 2:00:00 -p core" 0,1)"
+trimmingjobid="$(ma_pipeline_wrapper qtrim "-t 4:00:00 -p core" 0,1)"
 velvethjobid=$(ma_pipeline_wrapper velveth "-t 1-00:00:00 -p node -C mem24GB -d afterok:$trimmingjobid" 2.1)
 velvetgjobid=$(ma_pipeline_wrapper velvetg "-t 03:00:00 -p node -d afterok:$velvethjobid" 2.2)
 metavelvetgjobid=$(ma_pipeline_wrapper metavelvetg "-t 03:00:00 -p node -d afterok:$velvethjobid" 4)
