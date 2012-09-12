@@ -58,27 +58,22 @@ fi
 # http://www.homolog.us/blogs/2012/06/08/an-explanation-of-velvet-parameter-exp_cov/
 # Since velvet wasn't made for metagenomics we will not use any.
 # Run over several kmers with and without scaffolding
-if $SBATCH; then
-    prefix="sbatch --output=slurm-velvetg.output --error=slurm-velvetg.err -A b2010008 -J velvetg.$(basename $FASTQPAIRED) -t 02:00:00 -p node -d afterok:$velvethjobid /bubo/home/h16/inod/bin/sbatch_job "
-else
-    prefix='eval'
-fi
 # no scaf and scaf for velvetg
 if [ "$PROGRAM" = "velvetg" ]; then
     for asm in $OUTDIR/fastq-shortpaired-noscaf_*; do
-        velvetg \$asm -scaffolding no || { echo \$asm -scaffolding no failed. >&2; rm -rf \$asm; continue; };
-        scafasm=\$(echo \$asm | sed 's/noscaf/scaf/');
-        cp -r \$asm \$scafasm;
-        velvetg \$scafasm -scaffolding yes || { echo \$scafasm -scaffolding yes failed. >&2; rm -rf \$scafasm; continue; };
+        velvetg $asm -scaffolding no || { echo $asm -scaffolding no failed. >&2; rm -rf $asm; continue; };
+        scafasm=$(echo $asm | sed 's/noscaf/scaf/');
+        cp -r $asm $scafasm;
+        velvetg $scafasm -scaffolding yes || { echo $scafasm -scaffolding yes failed. >&2; rm -rf $scafasm; continue; };
     done
 fi
 # no scaf and scaf for meta-velvetg (note this overwrites possible previous velvetg contigs)
 if [ "$PROGRAM" = "meta-velvetg" ]; then
     for asm in $OUTDIR/fastq-shortpaired-noscaf_*; do
-        velvetg \$asm -scaffolding no -exp_cov auto -read_trkg yes || { echo \$asm -scaffolding no -exp_cov auto -read_trkg yes failed. >&2; rm -rf \$asm; exit 1; };
-        meta-velvetg \$asm -scaffolding no || { echo \$asm -scaffolding no failed. >&2; rm -rf \$asm; continue; };
-        scafasm=\$(echo \$asm | sed 's/noscaf/scaf/');
-        cp -r \$asm \$scafasm;
-        meta-velvetg \$scafasm -scaffolding yes || { echo \$scafasm -scaffolding yes failed. >&2; rm -rf \$scafasm; continue; };
+        velvetg $asm -scaffolding no -exp_cov auto -read_trkg yes || { echo $asm -scaffolding no -exp_cov auto -read_trkg yes failed. >&2; rm -rf $asm; exit 1; };
+        meta-velvetg $asm -scaffolding no || { echo $asm -scaffolding no failed. >&2; rm -rf $asm; continue; };
+        scafasm=$(echo $asm | sed 's/noscaf/scaf/');
+        cp -r $asm $scafasm;
+        meta-velvetg $scafasm -scaffolding yes || { echo $scafasm -scaffolding yes failed. >&2; rm -rf $scafasm; continue; };
     done
 fi
