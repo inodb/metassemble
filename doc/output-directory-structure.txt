@@ -6,3 +6,16 @@ ma-out/assemblies/velvet/noscaf/minimus2               # Minimus2 merged velvet 
 ma-out/assemblies/velvet/noscaf/newbler                # Newbler merged velvet noscaf assembly
 ma-out/assemblies/metavelvet/noscaf/minimus2           # Minimus2 merged metavelvet noscaf assembly
 ma-out/assemblies/metavelvet/noscaf/newbler            # Newbler merged metavelvet noscaf assembly
+
+ma-out/*                                               # Validation files are in the same directory as the assembly followed by /val/
+val/asm-stats.tab                                      # Assembly stats
+val/contig-purity-length.tab                           # Purity and length of each contig
+val/gccontent-contigcov.pdf                            # Plot of gnm-stats.tab, GC-content of each genome against the ratio of it covered by contigs
+val/gnm-stats.tab                                      # Per genome stats
+val/nucmer.coords                                      # Output file after mapping to reference with nucmer --maxmatch and show-coords
+val/nucmer.delta                                       # Output file of nucmer --maxmatch
+val/nucmer.gcoords                                     # show-coords output after running delta-filter -g
+val/nucmer.gdelta                                      # delta-filter -g output, creates best 1-1 mapping of ref to query
+val/purity                                             # Output of ../scripts/validate/nucmer/stats/purity.awk, ../scripts/Makefile-validate-assemblies
+val/purity-length-hist.tab                             # Histogram of purity against length
+val/purity-length.pdf                                  # Plot of purity-length-hist.tab
