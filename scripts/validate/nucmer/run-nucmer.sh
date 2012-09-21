@@ -24,4 +24,4 @@ nucmer --maxmatch --prefix=$OUTPUTBASE $REF $QUERY
 # delta-filter 
 show-coords -rclTH $OUTPUTBASE.delta > $OUTPUTBASE.coords
 delta-filter -g $OUTPUTBASE.delta > $OUTPUTBASE.gdelta
-show-coords -rclTH $OUTPUTBASE.delta > $OUTPUTBASE.gcoords
+show-coords -rclTH $OUTPUTBASE.gdelta > $OUTPUTBASE.gcoords
