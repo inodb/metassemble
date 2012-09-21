@@ -1,5 +1,4 @@
 #!/bin/bash
-set -e
 HELPDOC=$( cat <<EOF
 Flattens a fasta to have the sequence on one line instead of multiple.
 
@@ -9,6 +8,8 @@ Options:
     -h      This help documentation.
 EOF
 ) 
+set -o errexit
+set -o nounset
 
 # Parse options
 while getopts ":h" opt; do
@@ -24,6 +25,7 @@ while getopts ":h" opt; do
             ;;
     esac
 done
+shift $(($OPTIND - 1)) 
 
 # Parse arguments
 if [ "$#" -ne "1" ]

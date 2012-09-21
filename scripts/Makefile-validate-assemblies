@@ -1,0 +1,94 @@
+# Input parameters
+ASSEMBLY_MAKEFILE=/bubo/home/h16/inod/glob/github/metassemble/scripts/Makefile
+REF=/bubo/home/h16/inod/metagenomics/results/chris-mock/Project_ID793_dAmore/Sample_50ng_even/mapping/velvet35test/references.fa
+
+include $(ASSEMBLY_MAKEFILE)
+
+# Calculate reference stats
+$(OUT)/reference-stats/ref.stats:
+	sbatch $(call get_sbatch_job_par,mapref,-p node -t 2-00:00:00) \
+		"mkdir -p $(dir $@); \
+		bash $(SCRIPTDIR)/validate/reference/stats/length-gc-cov.sh \
+			$(PRC_READS_OUT)/$(FASTQBASE).1.qtrim $(PRC_READS_OUT)/$(FASTQBASE).2.qtrim \
+			$(FASTQBASE).qtrim $(REF) ref $(dir $@) > $@"
+
+# Validate assemblies, run nucmer
+RUNNUCMERRULE=$(call get_sbatch_job_par,nucmer,-p node -t 02:00:00) \
+	    "mkdir -p $(@D); \
+		    bash $(SCRIPTDIR)/validate/nucmer/run-nucmer.sh $(REF) $< $(@D)/nucmer"
+%minimus2/val/nucmer.gcoords: %minimus2/all-merged.fasta $(REF)
+	sbatch $(shell $(call get_job_dependencies,minimus2vnoscaf,minimus2mvnoscaf)) \
+	$(RUNNUCMERRULE)
+%newbler/val/nucmer.gcoords: %newbler/454AllContigs.fna $(REF)
+	sbatch $(shell $(call get_job_dependencies,newblervnoscaf,newblermvnoscaf)) \
+	$(RUNNUCMERRULE)
+%/val/nucmer.gcoords: %/contigs.fa $(REF)
+	sbatch $(shell $(call get_job_dependencies,vgnoscaf$(OKMAX),vgscaf$(OKMAX))) \
+	$(RUNNUCMERRULE)
+%/val/nucmer.gcoords: %/meta-velvetg.contigs.fa $(REF)
+	sbatch $(shell $(call get_job_dependencies,mvgnoscaf$(OKMAX),mvgscaf$(OKMAX))) \
+	$(RUNNUCMERRULE)
+
+# Validate assemblies, calculate stats and plot.
+# For the calc stats rule, all parameters are the same except for the location
+# of the contigs and the parameters to the awk script
+define calc_stats_asm_rule
+	sbatch $(shell $(call get_job_dependencies,nucmer)) \
+		$(call get_sbatch_job_par,calc-stats,-p core -t 02:00:00) \
+		"bash $(SCRIPTDIR)/process-reads/flatten-fasta.sh $1 \
+			| gawk $2 -v name=$1 \
+			-v contig_out=$(dir $@)contig-purity-length.tab \
+			-f $(SCRIPTDIR)/validate/nucmer/stats/purity.awk - $< > $(dir $@)purity; \
+		Rscript $(SCRIPTDIR)/validate/nucmer/stats/pergenome-perassembly.R \
+			$1 $(OUT)/reference-stats/ref.stats $< $(dir $@)"
+endef
+$(VELVET_OUT_NOSCAF)/noscaf_%/val/purity-length-hist.tab: $(VELVET_OUT_NOSCAF)/noscaf_%/val/nucmer.gcoords $(OUT)/reference-stats/ref.stats
+	$(call calc_stats_asm_rule,$(VELVET_OUT_NOSCAF)/noscaf_$*/contigs.fa,-v asm_type=velvetnoscaf -v kmer_size=$* -v kmer_type=single)
+$(VELVET_OUT_SCAF)/scaf_%/val/purity-length-hist.tab: $(VELVET_OUT_SCAF)/scaf_%/val/nucmer.gcoords $(OUT)/reference-stats/ref.stats
+	$(call calc_stats_asm_rule,$(VELVET_OUT_SCAF)/scaf_$*/contigs.fa,-v asm_type=velvetscaf -v kmer_size=$* -v kmer_type=single)
+$(METAVELVET_OUT_NOSCAF)/noscaf_%/val/purity-length-hist.tab: $(METAVELVET_OUT_NOSCAF)/noscaf_%/val/nucmer.gcoords $(OUT)/reference-stats/ref.stats
+	$(call calc_stats_asm_rule,$(METAVELVET_OUT_NOSCAF)/noscaf_$*/meta-velvetg.contigs.fa,-v asm_type=metavelvetnoscaf -v kmer_size=$* -v kmer_type=single)
+$(METAVELVET_OUT_SCAF)/scaf_%/val/purity-length-hist.tab: $(METAVELVET_OUT_SCAF)/scaf_%/val/nucmer.gcoords $(OUT)/reference-stats/ref.stats
+	$(call calc_stats_asm_rule,$(METAVELVET_OUT_SCAF)/scaf_$*/meta-velvetg.contigs.fa,-v asm_type=metavelvetscaf -v kmer_size=$* -v kmer_type=single)
+$(MINIMUS2_OUT_VELVET_NOSCAF)/val/purity-length-hist.tab: $(MINIMUS2_OUT_VELVET_NOSCAF)/val/nucmer.gcoords $(OUT)/reference-stats/ref.stats
+	$(call calc_stats_asm_rule,$(MINIMUS2_OUT_VELVET_NOSCAF)/all-merged.fasta,-v asm_type=minimus2velvetnoscaf -v kmin=$(KMIN) -v kmax=$(KMAX) -v kmer_type=multiple)
+$(MINIMUS2_OUT_METAVELVET_NOSCAF)/val/purity-length-hist.tab: $(MINIMUS2_OUT_METAVELVET_NOSCAF)/val/nucmer.gcoords $(OUT)/reference-stats/ref.stats
+	$(call calc_stats_asm_rule,$(MINIMUS2_OUT_METAVELVET_NOSCAF)/all-merged.fasta,-v asm_type=minimus2metavelvetnoscaf -v kmin=$(KMIN) -v kmax=$(KMAX) -v kmer_type=multiple)
+$(NEWBLER_OUT_VELVET_NOSCAF)/val/purity-length-hist.tab: $(NEWBLER_OUT_VELVET_NOSCAF)/val/nucmer.gcoords $(OUT)/reference-stats/ref.stats
+	$(call calc_stats_asm_rule,$(NEWBLER_OUT_VELVET_NOSCAF)/454AllContigs.fna,-v asm_type=newblervelvetnoscaf -v kmin=$(KMIN) -v kmax=$(KMAX) -v kmer_type=multiple)
+$(NEWBLER_OUT_METAVELVET_NOSCAF)/val/purity-length-hist.tab: $(NEWBLER_OUT_METAVELVET_NOSCAF)/val/nucmer.gcoords $(OUT)/reference-stats/ref.stats
+	$(call calc_stats_asm_rule,$(NEWBLER_OUT_METAVELVET_NOSCAF)/454AllContigs.fna,-v asm_type=newblermetavelvetnoscaf -v kmin=$(KMIN) -v kmax=$(KMAX) -v kmer_type=multiple)
+
+# Only validate existing, often something goes wrong in the assembly process so
+# this allows you to only validate those assemblies that succeeded in case one
+# is not able to get the other assemblies to complete.
+validateexisting: \
+	$(subst contigs.fa,val/purity-length-hist.tab,\
+	$(subst 454AllContigs.fna,val/purity-length-hist.tab,\
+	$(subst all-merged.fasta,val/purity-length-hist.tab,\
+	$(subst meta-velvetg.contigs.fa,val/purity-length-hist.tab,$(wildcard $(ALLASMCONTIGS))))))
+# Make a combined plot of Purity against L50 for all assemblies
+plotcombined:
+	mkdir -p $(ASM_OUT)/val
+	find $(ASM_OUT) -name purity | grep -ve $(ASM_OUT)/val/purity | \
+		xargs awk '{ \
+			if (FNR == 1 && NR == 1) {  \
+				print $$0; \
+			} \
+			if (FNR == 2) { \
+				if ($$14 == "multiple") { \
+					$$15=$$16; \
+					print $$0; \
+					$$15=$$17; \
+					print $$0; \
+				} else { \
+					print $$0; \
+				} \
+			} \
+		}' > $(ASM_OUT)/val/purity
+	Rscript $(SCRIPTDIR)/validate/nucmer/plot/purity-L50.R --gradient-color-column kmer_size --title $(FASTQBASE) $(ASM_OUT)/val/l50-purity-$(FASTQBASE).pdf $(ASM_OUT)/val/purity
+
+keepcontigsandvalidationonly:
+	-find $(ASM_OUT)/* -type f | grep -v $(foreach contigs,$(wildcard $(ALLASMCONTIGS)),-e $(contigs)) -e $(VELVET_OUT_NOSCAF)/noscaf_$(OKMAX)/Sequences -e slurm -e val | xargs rm
+
+.PHONY: plotcombined existing keepcontigsandvalidationonly

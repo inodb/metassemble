@@ -1,0 +1,8 @@
+ma-out/assemblies/velvet/noscaf/noscaf_%               # velvetg -scaffolding no and % is the kmer size
+ma-out/assemblies/velvet/scaf/scaf_%                   # velvetg -scaffolding yes and % is the kmer size
+ma-out/assemblies/metavelvet/noscaf/noscaf_%           # meta-velvetg -scaffolding no and % is the kmer size
+ma-out/assemblies/metavelvet/scaf/scaf_%               # meta-velvetg -scaffolding yes and % is the kmer size
+ma-out/assemblies/velvet/noscaf/minimus2               # Minimus2 merged velvet noscaf assembly
+ma-out/assemblies/velvet/noscaf/newbler                # Newbler merged velvet noscaf assembly
+ma-out/assemblies/metavelvet/noscaf/minimus2           # Minimus2 merged metavelvet noscaf assembly
+ma-out/assemblies/metavelvet/noscaf/newbler            # Newbler merged metavelvet noscaf assembly

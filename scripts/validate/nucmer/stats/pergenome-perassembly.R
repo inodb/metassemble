@@ -4,8 +4,6 @@ usage.string <-
                  <references.stats>
                  <mummer show-coords output file>
                  <output dir>
-                 <gc-contigcov-plot.pdf>
-                 <purity-contigcov.pdf>
 
 Displays some metagenomic related statistics after mapping assembled contigs
 versus a set of references. The script is meant for determining the quality of
@@ -77,8 +75,8 @@ if (length(args) != 4) {
 
 coordstable <- read.table(args[[3]])
 species <- unique(coordstable$V12)
-reflengths <- unique(coordstable$V8)
-names(reflengths) <- species
+#reflengths <- unique(coordstable$V8)
+#names(reflengths) <- species
 
 countgrep <- system(paste(sep="","grep -c '^>' ",args[[1]]),intern=TRUE)
 count.coverage  <- function(coordstable, sp, qcovthreshold) {
@@ -126,14 +124,14 @@ for (sp in species) {
 
     cat(sprintf("%s\t%i\t%i\t%i\t%.2f\t%i\t%i\t%.2f\t%i\t%.2f\t%.2f\t%.2f\n",
                   sp,
-                  reflengths[sp],
+                  ref.stats[sp,]$length,
                   nrow(contigcountssp),
                   qcovall,
-                  qcovall / reflengths[sp],
+                  qcovall / ref.stats[sp,]$length,
                   length(unique(coordstable$V13[coordstable$V12 == sp &
                                 coordstable$V11 == 100])),
                   qcov100,
-                  qcov100 / reflengths[sp],
+                  qcov100 / ref.stats[sp,]$length,
                   length(map.ref.count[names(map.ref.count) %in%
                     dimnames(contigcountssp)[[1]] & map.ref.count > 1]),
                   length(map.ref.count[names(map.ref.count) %in%
@@ -141,23 +139,12 @@ for (sp in species) {
                   nrow(contigcountssp),
                   ref.stats[sp,]$GC_content,
                   ref.stats[sp,]$cov))
-    pergenome.stats[sp,] <- c(
-                  reflengths[sp],
-                  nrow(contigcountssp),
-                  qcovall,
-                  qcovall / reflengths[sp],
-                  length(unique(coordstable$V13[coordstable$V12 == sp &
-                                coordstable$V11 == 100])),
-                  qcov100,
-                  qcov100 / reflengths[sp],
-                  length(map.ref.count[names(map.ref.count) %in%
-                    dimnames(contigcountssp)[[1]] & map.ref.count > 1]),
-                  length(map.ref.count[names(map.ref.count) %in%
-                    dimnames(contigcountssp)[[1]] & map.ref.count > 1]) /
-                  nrow(contigcountssp),
-                  ref.stats[sp,]$GC_content,
-                  ref.stats[sp,]$cov)
 }
+sink()
+# TODO: Per genome stats are read in here with the idea that the entire
+# previous part should be computed in some other way that is less horrendous.
+pergenome.stats <- read.table(paste(sep="",args[[4]],'/gnm-stats.tab'),skip=1)
+
 sink(paste(sep='',args[[4]],'/asm-stats.tab'))
 # cat(file=args[[4]],"All genomes\n")
 cat(paste(sep="\t",
@@ -175,7 +162,7 @@ sink()
 # GC content versus contig coverage plot
 sink("/dev/null")
 pdf(paste(sep='',args[[4]],'/gccontent-contigcov.pdf'))
-plot(pergenome.stats$X10,pergenome.stats$X7,xlim=c(0,1),ylim=c(0,1),xlab="GC content",ylab="Contig coverage")
+plot(pergenome.stats$V10,pergenome.stats$V7,xlim=c(0,1),ylim=c(0,1),xlab="GC content",ylab="Contig coverage")
 dev.off()
 
 # Purity-Length Plot

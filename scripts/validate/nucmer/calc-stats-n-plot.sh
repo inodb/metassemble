@@ -31,6 +31,6 @@ fi
 OUTDIR=${5%/}
 
 set -o xtrace 2>/dev/null
-bash $SCRIPTDIR/process-reads/inodb-flatten-fasta.sh $QUERY | gawk -f $SCRIPTDIR/stats/purity.awk - $COORDS > $OUTDIR/purity
+bash $SCRIPTDIR/../../process-reads/flatten-fasta.sh $QUERY | gawk -f $SCRIPTDIR/stats/purity.awk - $COORDS > $OUTDIR/purity
 Rscript $SCRIPTDIR/stats/pergenome-perassembly.R $QUERY $REFSTATS $COORDS $OUTDIR
 set +o xtrace 2>/dev/null
