@@ -102,7 +102,7 @@ endif
 # Scaffolding velvetg, copy the output from velveth and run velvetg with -scaffolding yes
 VELVETG_SCAF_RULE=\
     mkdir -p $(dir $@); \
-    cp $(dir $<){Graph,LastGraph,Sequences,PreGraph,Roadmaps,Log} $(dir $@); \
+    cp $(subst noscaf_$(OKMAX)/,noscaf_$*/,$(dir $<)){Graph,LastGraph,Sequences,PreGraph,Roadmaps,Log} $(dir $@); \
     velvetg $(dir $@) -scaffolding yes || { echo 'velvetg -scaffolding yes failed.' >&2; rm -rf $(dir $@); };
 $(VELVET_OUT_SCAF)/scaf_%/contigs.fa : $(VELVET_OUT_NOSCAF)/noscaf_$(OKMAX)/Sequences
 ifeq ($(USE_SBATCH),yes)
@@ -123,7 +123,7 @@ METAVELVETG_OUT_SCAF=$(shell echo $(METAVELVET_OUT_SCAF)/scaf_{$(KMIN)..$(OKMAX)
 # Copy output from velveth and run velvetg, followed by meta-velvetg -scaffolding yes or no
 metavelvetg_rule=\
     mkdir -p $(dir $@); \
-    cp $(dir $<){Graph,LastGraph,Sequences,PreGraph,Roadmaps,Log} $(dir $@); \
+    cp $(subst noscaf_$(OKMAX)/,noscaf_$*/,$(dir $<)){Graph,LastGraph,Sequences,PreGraph,Roadmaps,Log} $(dir $@); \
     velvetg $(dir $@) -scaffolding no -exp_cov auto -read_trkg yes \
     && meta-velvetg $(dir $@) $1 \
     || { echo 'velvetg or meta-velvetg $1 failed.' >&2; \
@@ -246,4 +246,4 @@ cleanpurity:
 
 .PHONY: all qtrim velvet metavelvet minimus2 minimus2velvet minimus2metavelvet newbler newblervelvet newblermetavelvet cleanall cleanasm cleanvelvetg cleanvelvet cleanmetavelvet cleanmetavelvetg cleanqtrim cleanminimus2 cleannewbler validateexisting keepcontigsonly echoexisting
 # Takes quite some time to compute some of these, so you might want to decide yourself when to delete them by using make keepcontigsonly for instance.
-.PRECIOUS: $(VELVETH_OUT_NOSCAF) $(VELVETH_OUT_SCAF) $(PRC_READS_OUT)/$(FASTQBASE).qtrim $(METAVELVETH_OUT_NOSCAF) $(METAVELVETH_OUT_SCAF) %minimus2/val/nucmer.gcoords %newbler/val/nucmer.gcoords %/val/nucmer.gcoords
+.PRECIOUS: $(VELVETH_OUT_NOSCAF) $(VELVETH_OUT_SCAF) $(PRC_READS_OUT)/$(FASTQBASE).qtrim $(METAVELVETH_OUT_NOSCAF) $(METAVELVETH_OUT_SCAF)
