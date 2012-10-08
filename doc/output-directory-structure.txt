@@ -6,6 +6,10 @@ ma-out/assemblies/velvet/noscaf/minimus2               # Minimus2 merged velvet 
 ma-out/assemblies/velvet/noscaf/newbler                # Newbler merged velvet noscaf assembly
 ma-out/assemblies/metavelvet/noscaf/minimus2           # Minimus2 merged metavelvet noscaf assembly
 ma-out/assemblies/metavelvet/noscaf/newbler            # Newbler merged metavelvet noscaf assembly
+ma-out/assemblies/velvet/noscaf/noscaf_%/bambus2       # Bambus 2 scaffolding of velvetg -scaffolding no and % is kmer size
+ma-out/assemblies/metavelvet/noscaf/noscaf_%/bambus2   # Bambus 2 scaffolding of meta-velvetg -scaffoldng no and % is kmer size
+ma-out/assemblies/velvet/noscaf/minimus2/bambus2       # Bambus2 scaffolding of minimus2 merged velvet no scaf assemblies
+ma-out/assemblies/velvet/noscaf/newbler/bambus2        # Bambus2 scaffolding of newbler merged velvet no scaf assemblies
 
 ma-out/*                                               # Validation files are in the same directory as the assembly followed by /val/
 val/asm-stats.tab                                      # Assembly stats
