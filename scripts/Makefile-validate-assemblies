@@ -22,6 +22,9 @@ RUNNUCMERRULE=$(call get_sbatch_job_par,nucmer,-p node -t 02:00:00) \
 %newbler/val/nucmer.coords: %newbler/454AllContigs.fna $(REF)
 	sbatch $(shell $(call get_job_dependencies,newblervnoscaf,newblermvnoscaf)) \
 	$(RUNNUCMERRULE)
+%bambus2/val/nucmer.coords: %bambus2/bambus2.scaffold.linear.fasta $(REF)
+	sbatch $(shell $(call get_job_dependencies,bambus2minimus2,bambus2vnoscaf,bambus2newbler,bambus2mvnoscaf)) \
+	$(RUNNUCMERRULE)
 %/val/nucmer.coords: %/contigs.fa $(REF)
 	sbatch $(shell $(call get_job_dependencies,vgnoscaf$(OKMAX),vgscaf$(OKMAX))) \
 	$(RUNNUCMERRULE)
@@ -42,6 +45,21 @@ define calc_stats_asm_rule
 		Rscript $(SCRIPTDIR)/validate/nucmer/stats/pergenome-perassembly.R \
 			$1 $(OUT)/reference-stats/ref.stats $< $(dir $@)"
 endef
+
+# Bambus2
+$(VELVET_OUT_NOSCAF)/noscaf_%/bambus2/val/purity-length-hist.tab: $(VELVET_OUT_NOSCAF)/noscaf_%/bambus2/val/nucmer.coords $(OUT)/reference-stats/ref.stats
+	$(call calc_stats_asm_rule,$(VELVET_OUT_NOSCAF)/noscaf_$*/bambus2/bambus2.scaffold.linear.fasta,-v asm_type=bambus2velvetnoscaf -v kmer_size=$* -v kmer_type=single)
+$(METAVELVET_OUT_NOSCAF)/noscaf_%/bambus2/val/purity-length-hist.tab: $(METAVELVET_OUT_NOSCAF)/noscaf_%/bambus2/val/nucmer.coords $(OUT)/reference-stats/ref.stats
+	$(call calc_stats_asm_rule,$(METAVELVET_OUT_NOSCAF)/noscaf_$*/bambus2/bambus2.scaffold.linear.fasta,-v asm_type=bambus2metavelvetnoscaf -v kmer_size=$* -v kmer_type=single)
+$(MINIMUS2_OUT_VELVET_NOSCAF)/bambus2/val/purity-length-hist.tab: $(MINIMUS2_OUT_VELVET_NOSCAF)/bambus2/val/nucmer.coords $(OUT)/reference-stats/ref.stats
+	$(call calc_stats_asm_rule,$(MINIMUS2_OUT_VELVET_NOSCAF)/bambus2/bambus2.scaffold.linear.fasta,-v asm_type=bambus2minimus2velvetnoscaf -v kmin=$(KMIN) -v kmax=$(OKMAX) -v kmer_type=multiple)
+$(MINIMUS2_OUT_METAVELVET_NOSCAF)/bambus2/val/purity-length-hist.tab: $(MINIMUS2_OUT_METAVELVET_NOSCAF)/bambus2/val/nucmer.coords $(OUT)/reference-stats/ref.stats
+	$(call calc_stats_asm_rule,$(MINIMUS2_OUT_METAVELVET_NOSCAF)/bambus2/bambus2.scaffold.linear.fasta,-v asm_type=bambus2minimus2metavelvetnoscaf -v kmin=$(KMIN) -v kmax=$(OKMAX) -v kmer_type=multiple)
+$(NEWBLER_OUT_VELVET_NOSCAF)/bambus2/val/purity-length-hist.tab: $(NEWBLER_OUT_VELVET_NOSCAF)/bambus2/val/nucmer.coords $(OUT)/reference-stats/ref.stats
+	$(call calc_stats_asm_rule,$(NEWBLER_OUT_VELVET_NOSCAF)/bambus2/bambus2.scaffold.linear.fasta,-v asm_type=bambus2newblervelvetnoscaf -v kmin=$(KMIN) -v kmax=$(OKMAX) -v kmer_type=multiple)
+$(NEWBLER_OUT_METAVELVET_NOSCAF)/bambus2/val/purity-length-hist.tab: $(NEWBLER_OUT_METAVELVET_NOSCAF)/bambus2/val/nucmer.coords $(OUT)/reference-stats/ref.stats
+	$(call calc_stats_asm_rule,$(NEWBLER_OUT_METAVELVET_NOSCAF)/bambus2/bambus2.scaffold.linear.fasta,-v asm_type=bambus2newblermetavelvetnoscaf -v kmin=$(KMIN) -v kmax=$(OKMAX) -v kmer_type=multiple)
+
 $(VELVET_OUT_NOSCAF)/noscaf_%/val/purity-length-hist.tab: $(VELVET_OUT_NOSCAF)/noscaf_%/val/nucmer.coords $(OUT)/reference-stats/ref.stats
 	$(call calc_stats_asm_rule,$(VELVET_OUT_NOSCAF)/noscaf_$*/contigs.fa,-v asm_type=velvetnoscaf -v kmer_size=$* -v kmer_type=single)
 $(VELVET_OUT_SCAF)/scaf_%/val/purity-length-hist.tab: $(VELVET_OUT_SCAF)/scaf_%/val/nucmer.coords $(OUT)/reference-stats/ref.stats
@@ -66,7 +84,8 @@ validateexisting: \
 	$(subst contigs.fa,val/purity-length-hist.tab,\
 	$(subst 454AllContigs.fna,val/purity-length-hist.tab,\
 	$(subst all-merged.fasta,val/purity-length-hist.tab,\
-	$(subst meta-velvetg.contigs.fa,val/purity-length-hist.tab,$(wildcard $(ALLASMCONTIGS))))))
+	$(subst meta-velvetg.contigs.fa,val/purity-length-hist.tab,$(wildcard $(ALLASMCONTIGS) $(ALLASMSCAFFOLDS)))))) \
+	$(subst bambus2.scaffold.linear.fasta,val/purity-length-hist.tab,$(wildcard $(BAMBUS2SCAFFOLDS)))
 # Make a combined plot of Purity against L50 for all assemblies
 plotcombined:
 	mkdir -p $(ASM_OUT)/val
@@ -77,8 +96,6 @@ plotcombined:
 			} \
 			if (FNR == 2) { \
 				if ($$14 == "multiple") { \
-					$$15=$$16; \
-					print $$0; \
 					$$15=$$17; \
 					print $$0; \
 				} else { \
@@ -91,5 +108,5 @@ plotcombined:
 keepcontigsandvalidationonly:
 	-find $(ASM_OUT)/* -type f | grep -v $(foreach contigs,$(wildcard $(ALLASMCONTIGS)),-e $(contigs)) -e $(VELVET_OUT_NOSCAF)/noscaf_$(OKMAX)/Sequences -e slurm -e val | xargs rm
 
-.PHONY: plotcombined existing keepcontigsandvalidationonly
-.PRECIOUS: %minimus2/val/nucmer.coords %newbler/val/nucmer.coords %/val/nucmer.coords
+.PHONY: plotcombined validateexisting keepcontigsandvalidationonly
+.PRECIOUS: %minimus2/val/nucmer.coords %newbler/val/nucmer.coords %bambus2/val/nucmer.coords

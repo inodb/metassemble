@@ -71,45 +71,50 @@ STEPSIZE=2
 # {KMIN..(KMAX-1)..STEPSIZE} in bash
 OKMAX=$(shell echo $$(($(KMAX) - 1 - (($(KMAX) - 1 - $(KMIN)) % $(STEPSIZE)))))
 VELVET_OUT=$(ASM_OUT)/velvet
+VELVETH_OUT=$(VELVET_OUT)/velveth
 VELVET_OUT_NOSCAF=$(VELVET_OUT)/noscaf
-VELVETH_OUT_NOSCAF=$(shell echo $(VELVET_OUT_NOSCAF)/noscaf_{$(KMIN)..$(OKMAX)..$(STEPSIZE)}/Sequences)
+VELVETH_OUT_SIGNAL_FILE=$(VELVETH_OUT)/velveth.done
+VELVETH_OUT_SEQ=$(shell echo $(VELVETH_OUT)/velveth_{$(KMIN)..$(OKMAX)..$(STEPSIZE)}/Sequences)
 VELVETG_OUT_NOSCAF=$(shell echo $(VELVET_OUT_NOSCAF)/noscaf_{$(KMIN)..$(OKMAX)..$(STEPSIZE)}/contigs.fa)
 VELVET_OUT_SCAF=$(VELVET_OUT)/scaf
-VELVETH_OUT_SCAF=$(shell echo $(VELVET_OUT_SCAF)/scaf_{$(KMIN)..$(OKMAX)..$(STEPSIZE)}/Sequences)
 VELVETG_OUT_SCAF=$(shell echo $(VELVET_OUT_SCAF)/scaf_{$(KMIN)..$(OKMAX)..$(STEPSIZE)}/contigs.fa)
 # velveth
 VELVETH_RULE=\
-    mkdir -p $(VELVET_OUT_NOSCAF); \
-    velveth $(VELVET_OUT_NOSCAF)/noscaf $(KMIN),$(KMAX),$(STEPSIZE) \
-        -fastq -shortPaired $(PRC_READS_OUT)/$(FASTQBASE).qtrim
-$(VELVET_OUT_NOSCAF)/noscaf_$(OKMAX)/Sequences : $(PRC_READS_OUT)/$(FASTQBASE).qtrim
+    mkdir -p $(VELVETH_OUT); \
+    velveth $(VELVETH_OUT)/velveth $(KMIN),$(KMAX),$(STEPSIZE) \
+        -fastq -shortPaired $(PRC_READS_OUT)/$(FASTQBASE).qtrim; \
+	touch $(VELVETH_OUT_SIGNAL_FILE)
+$(VELVETH_OUT_SIGNAL_FILE) : $(PRC_READS_OUT)/$(FASTQBASE).qtrim
 ifeq ($(USE_SBATCH),yes)
 	sbatch $(shell $(call get_job_dependencies,qtrim)) $(call get_sbatch_job_par,velveth,-p node -C mem24GB -t 1-00:00:00) \
 		"$(VELVETH_RULE)"
 else
 	$(VELVETH_RULE)
 endif
-# No scaffolding velvetg	
-VELVETG_NOSCAF_RULE=\
-    velvetg $(dir $@) -scaffolding no || { echo 'velvetg -scaffolding no failed.' >&2; rm -rf $(dir $@); };
-$(VELVET_OUT_NOSCAF)/noscaf_%/contigs.fa : $(VELVET_OUT_NOSCAF)/noscaf_$(OKMAX)/Sequences
+$(VELVETH_OUT)/velveth_%/Sequences : $(VELVETH_OUT_SIGNAL_FILE)
+	
+
+velvetg_rule=\
+    mkdir -p $(dir $@); \
+    velvetg $(dir $<) $1 || { echo 'velvetg $1 failed.' >&2; }; \
+    mv $(dir $<)contigs.fa $(dir $@)
+# No scaffolding velvetg, perform on velveth output and store output in a
+# different folder, so velveth output can be reused
+$(VELVET_OUT_NOSCAF)/noscaf_%/contigs.fa : $(VELVETH_OUT)/velveth_%/Sequences
 ifeq ($(USE_SBATCH),yes)
 	sbatch $(shell $(call get_job_dependencies,velveth)) $(call get_sbatch_job_par,vgnoscaf$*,-p node -t 02:00:00) \
-		"$(VELVETG_NOSCAF_RULE)"
+		"$(call velvetg_rule,-scaffolding no)"
 else
-	$(VELVETG_NOSCAF_RULE)
+	$(call velvetg_rule,-scaffolding no)
 endif
-# Scaffolding velvetg, copy the output from velveth and run velvetg with -scaffolding yes
-VELVETG_SCAF_RULE=\
-    mkdir -p $(dir $@); \
-    cp $(subst noscaf_$(OKMAX)/,noscaf_$*/,$(dir $<)){Graph,LastGraph,Sequences,PreGraph,Roadmaps,Log} $(dir $@); \
-    velvetg $(dir $@) -scaffolding yes || { echo 'velvetg -scaffolding yes failed.' >&2; rm -rf $(dir $@); };
-$(VELVET_OUT_SCAF)/scaf_%/contigs.fa : $(VELVET_OUT_NOSCAF)/noscaf_$(OKMAX)/Sequences
+# Scaffolding velvetg, -exp_cov auto although unsuitable for metagenomics must
+# be set otherwise scaffolding is not performed
+$(VELVET_OUT_SCAF)/scaf_%/contigs.fa : $(VELVETH_OUT)/velveth_%/Sequences
 ifeq ($(USE_SBATCH),yes)
 	sbatch $(shell $(call get_job_dependencies,velveth)) $(call get_sbatch_job_par,vgscaf$*,-p node -t 02:00:00) \
-		"$(VELVETG_SCAF_RULE)"
+		"$(call velvetg_rule,-scaffolding no -exp_cov auto)"
 else
-	$(VELVETG_SCAF_RULE)
+	$(call velvetg_rule,-scaffolding no -exp_cov auto)
 endif
 
 # Metavelvet
@@ -123,19 +128,18 @@ METAVELVETG_OUT_SCAF=$(shell echo $(METAVELVET_OUT_SCAF)/scaf_{$(KMIN)..$(OKMAX)
 # Copy output from velveth and run velvetg, followed by meta-velvetg -scaffolding yes or no
 metavelvetg_rule=\
     mkdir -p $(dir $@); \
-    cp $(subst noscaf_$(OKMAX)/,noscaf_$*/,$(dir $<)){Graph,LastGraph,Sequences,PreGraph,Roadmaps,Log} $(dir $@); \
-    velvetg $(dir $@) -scaffolding no -exp_cov auto -read_trkg yes \
-    && meta-velvetg $(dir $@) $1 \
-    || { echo 'velvetg or meta-velvetg $1 failed.' >&2; \
-           rm -rf $(dir $@); };
-$(METAVELVET_OUT_NOSCAF)/noscaf_%/meta-velvetg.contigs.fa : $(VELVET_OUT_NOSCAF)/noscaf_$(OKMAX)/Sequences
+    velvetg $(dir $<) -scaffolding no -exp_cov auto -read_trkg yes \
+    && meta-velvetg $(dir $<) $1 \
+    || { echo 'velvetg or meta-velvetg $1 failed.' >&2; }; \
+    mv $(dir $<)meta-velvetg.contigs.fa $(dir $@)
+$(METAVELVET_OUT_NOSCAF)/noscaf_%/meta-velvetg.contigs.fa : $(VELVETH_OUT)/velveth_%/Sequences
 ifeq ($(USE_SBATCH),yes)
 	sbatch $(shell $(call get_job_dependencies,velveth)) $(call get_sbatch_job_par,mvgnoscaf$*,-p node -t 02:00:00) \
 		"$(call metavelvetg_rule,-scaffolding no)"
 else
 	$(call metavelvetg_rule,-scaffolding no)
 endif
-$(METAVELVET_OUT_SCAF)/scaf_%/meta-velvetg.contigs.fa : $(VELVET_OUT_NOSCAF)/noscaf_$(OKMAX)/Sequences
+$(METAVELVET_OUT_SCAF)/scaf_%/meta-velvetg.contigs.fa : $(VELVETH_OUT)/velveth_%/Sequences
 ifeq ($(USE_SBATCH),yes)
 	sbatch $(shell $(call get_job_dependencies,velveth)) $(call get_sbatch_job_par,mvgscaf$*,-p node -t 02:00:00) \
 		"$(call metavelvetg_rule,-scaffolding yes)"
@@ -194,17 +198,59 @@ else
 	$(NEWBLER_RULE)
 endif
 
+# Bambus2
+BAMBUS2_RULE=\
+	mkdir -p $(@D); \
+	bash $(SCRIPTDIR)/validate/map-bwa-markduplicates.sh \
+		$(FASTQ1) $(FASTQ2) $(FASTQBASE) $< contigs $(@D); \
+	bash $(SCRIPTDIR)/assembly/scaf-asm-bambus2.sh \
+		$(@D)/contigs_${FASTQBASE}-smds.bam \
+		$< bambus2; \
+	rm $(@D)/contigs_${FASTQBASE}-smds.bam; \
+	touch $(@D)/bambus2.done
+%/bambus2/bambus2.done: %/all-merged.fasta
+ifeq ($(USE_SBATCH),yes)
+	sbatch $(call get_sbatch_job_par,bambus2minimus2,-p node -t 1-00:00:00) \
+	"$(BAMBUS2_RULE)"
+else
+	$(BAMBUS2_RULE)
+endif
+%/bambus2/bambus2.done: %/contigs.fa
+ifeq ($(USE_SBATCH),yes)
+	sbatch $(call get_sbatch_job_par,bambus2vnoscaf,-p node -t 1-00:00:00) \
+	"$(BAMBUS2_RULE)"
+else
+	$(BAMBUS2_RULE)
+endif
+%/bambus2/bambus2.done: %/454AllContigs.fna
+ifeq ($(USE_SBATCH),yes)
+	sbatch $(call get_sbatch_job_par,bambus2newbler,-p node -t 1-00:00:00) \
+	"$(BAMBUS2_RULE)"
+else
+	$(BAMBUS2_RULE)
+endif
+%/bambus2/bambus2.done: %/meta-velvetg.contigs.fa
+ifeq ($(USE_SBATCH),yes)
+	sbatch $(call get_sbatch_job_par,bambus2mvnoscaf,-p node -t 1-00:00:00) \
+	"$(BAMBUS2_RULE)"
+else
+	$(BAMBUS2_RULE)
+endif
+	
+
 # A list of the full paths of all the contigs that can be assembled
-ALLASMCONTIGS=$(VELVETG_OUT_NOSCAF) $(VELVETG_OUT_SCAF) \
-			  $(METAVELVETG_OUT_NOSCAF) $(METAVELVETG_OUT_SCAF) \
+ALLASMCONTIGS=$(VELVETG_OUT_NOSCAF) \
+			  $(METAVELVETG_OUT_NOSCAF) \
 			  $(MINIMUS2_OUT_VELVET_NOSCAF)/all-merged.fasta \
 			  $(MINIMUS2_OUT_METAVELVET_NOSCAF)/all-merged.fasta \
 			  $(NEWBLER_OUT_VELVET_NOSCAF)/454AllContigs.fna \
-			  $(NEWBLER_OUT_METAVELVET_NOSCAF)/454AllContigs.fna 
+			  $(NEWBLER_OUT_METAVELVET_NOSCAF)/454AllContigs.fna
+BAMBUS2SCAFFOLDS=$(foreach contigs, $(ALLASMCONTIGS), $(dir $(contigs))bambus2/bambus2.scaffold.linear.fasta)
+ALLASMSCAFFOLDS=$(VELVETG_OUT_SCAF) $(METAVELVETG_OUT_SCAF) $(BAMBUS2SCAFFOLDS)
 # Prints the full the paths of the assemblies files to stdout, useful e.g. if one wants to only copy
 # contigs someplace else
 echoexisting:
-	@echo $(wildcard $(ALLASMCONTIGS))
+	@echo $(wildcard $(ALLASMCONTIGS) $(ALLASMSCAFFOLDS))
 
 # Assemblies
 all: qtrim velvet metavelvet minimus2 newbler
@@ -219,6 +265,8 @@ minimus2metavelvet: $(MINIMUS2_OUT_METAVELVET_NOSCAF)/all-merged.fasta
 newbler: newblervelvet newblermetavelvet
 newblervelvet: $(NEWBLER_OUT_VELVET_NOSCAF)/454AllContigs.fna
 newblermetavelvet: $(NEWBLER_OUT_METAVELVET_NOSCAF)/454AllContigs.fna
+
+bambus2: $(foreach contigs, $(ALLASMCONTIGS), $(dir $(contigs))bambus2/bambus2.done)
 
 # Remove output, often one is only interested in keeping the assemblies, make keepcontigsonly allows you to do that
 keepcontigsonly:
@@ -246,4 +294,4 @@ cleanpurity:
 
 .PHONY: all qtrim velvet metavelvet minimus2 minimus2velvet minimus2metavelvet newbler newblervelvet newblermetavelvet cleanall cleanasm cleanvelvetg cleanvelvet cleanmetavelvet cleanmetavelvetg cleanqtrim cleanminimus2 cleannewbler validateexisting keepcontigsonly echoexisting
 # Takes quite some time to compute some of these, so you might want to decide yourself when to delete them by using make keepcontigsonly for instance.
-.PRECIOUS: $(VELVETH_OUT_NOSCAF) $(VELVETH_OUT_SCAF) $(PRC_READS_OUT)/$(FASTQBASE).qtrim $(METAVELVETH_OUT_NOSCAF) $(METAVELVETH_OUT_SCAF)
+.PRECIOUS: $(VELVETH_OUT_SEQ) $(PRC_READS_OUT)/$(FASTQBASE).qtrim

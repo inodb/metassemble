@@ -27,7 +27,7 @@ OUTDIR=$6
 module load biopython
 
 if [ ! -e $OUTDIR/${RNAME}_${QNAME}-smds.coverage ]; then
-    bash $SCRIPTDIR/../../map-bwa-markduplicates.sh $Q1 $Q2 $QNAME $REF $RNAME $OUTDIR > /dev/null
+    bash $SCRIPTDIR/../../map-bwa-markduplicates.sh -c $Q1 $Q2 $QNAME $REF $RNAME $OUTDIR > /dev/null
 fi
 
 python $SCRIPTDIR/gc-content.py $REF | \

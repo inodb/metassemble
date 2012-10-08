@@ -1,11 +1,14 @@
 #!/bin/bash
 HELPDOC=$( cat <<EOF
 Maps given paired library to given reference with bwa and uses picard to remove
-duplicates. BEDTools is used to determine the coverage of the reference.
+duplicates.
 
 Usage:
     bash `basename $0` [options] <reads1> <reads2> <qname> <ref> <rname> <outdir>
 Options:
+    -a      Output afg file by determining frament size with Picard and use
+            Abyss samtoafg script afterwards.
+    -c      Calculate coverage with BEDTools
     -k      Keep all output from intermediate steps.
     -h      This help documentation.
 EOF
@@ -19,10 +22,14 @@ source $SCRIPTDIR/../global-functions.incl
 
 # Default parameters
 RMTMPFILES=true
+CALCCOV=false
 
 # Parse options
-while getopts "kh" opt; do
+while getopts "khc" opt; do
     case $opt in
+        c)
+            CALCCOV=true
+            ;;
         k)
             RMTMPFILES=false
             ;;
@@ -37,18 +44,19 @@ while getopts "kh" opt; do
             ;;
     esac
 done
+shift $(($OPTIND - 1)) 
 
-Q1=$1
-Q2=$2
+Q1=$(readlink -f $1)
+Q2=$(readlink -f $2)
 QNAME=$3
-REF=$4
+REF=$(readlink -f $4)
 RNAME=$5
 OUTDIR=${6%/}
 CURDIR=`pwd`
 
-check_prog bwa samtools genomeCoverageBed
+check_prog bwa samtools genomeCoverageBed samtoafg
 
-MRKDUP=/bubo/home/h16/inod/glob/downloaded_software/picard-tools-1.66/MarkDuplicates.jar
+MRKDUP=/bubo/home/h16/inod/glob/downloaded_software/picard-tools-1.77/MarkDuplicates.jar
 if [ ! -e $MRKDUP ]; then
     echo "$MRKDUP doesn't exist" >&2
     exit 1
@@ -74,7 +82,7 @@ samtools sort ${RNAME}_${QNAME}.bam ${RNAME}_${QNAME}-s
 samtools index ${RNAME}_${QNAME}-s.bam
 
 # Mark duplicates and sort
-java -jar /bubo/home/h16/inod/glob/downloaded_software/picard-tools-1.66/MarkDuplicates.jar \
+java -jar $MRKDUP \
     INPUT=${RNAME}_${QNAME}-s.bam \
     OUTPUT=${RNAME}_${QNAME}-smd.bam \
     METRICS_FILE=${RNAME}_${QNAME}-smd.metrics \
@@ -86,11 +94,12 @@ samtools sort ${RNAME}_${QNAME}-smd.bam ${RNAME}_${QNAME}-smds
 samtools index ${RNAME}_${QNAME}-smds.bam
 
 # Determine Genome Coverage
-genomeCoverageBed -ibam ${RNAME}_${QNAME}-smds.bam > ${RNAME}_${QNAME}-smds.coverage
+if $CALCCOV; then
+    genomeCoverageBed -ibam ${RNAME}_${QNAME}-smds.bam > ${RNAME}_${QNAME}-smds.coverage
+fi
 
 # Remove temp files
-if $RMTMPFILES
-then
+if $RMTMPFILES; then
     rm ${RNAME}_${QNAME}.sam \
        ${RNAME}_${QNAME}.bam \
        ${RNAME}_${QNAME}-smd.bam \

@@ -19,6 +19,8 @@ BEGIN {
     # First determine fasta file lengths
     if (NR == FNR) { 
         if ($0 !~ /^>/ && length($0) >= cut_off) {
+            # Only count [ACGTacgt]
+            gsub(/[Nn]/,"",$0);
             # Save the contig lengths in a way that allows awk to sort them
             all_contig_lengths[nr_contigs++] = sprintf("%12s", length($0))
             sum_bases += length($0)

@@ -35,23 +35,41 @@ assemblies <- read.table(args[[2]],header=TRUE)
 # Plot the assembly
 pdf(output.pdf)
 if (length(opts[['gradient-color-column']]) == 1) {
-    # Velvet circles, metavelvet diamonds
-    shapes <- c(20,20,20,20,18,18,18,18)
-    names(shapes) <- c('velvetscaf',
-        'newblervelvetnoscaf','velvetnoscaf','minimus2velvetnoscaf',
-        'metavelvetscaf','metavelvetnoscaf','minimus2metavelvetnoscaf','newblermetavelvetnoscaf')
+    asm_type_hardcoded_levels <- 
+        c('velvetnoscaf',
+          'velvetscaf',
+          'minimus2velvetnoscaf',
+          'newblervelvetnoscaf',
+          'bambus2velvetnoscaf',
+          'bambus2minimus2velvetnoscaf',
+          'bambus2newblervelvetnoscaf',
+          'metavelvetnoscaf',
+          'metavelvetscaf',
+          'minimus2metavelvetnoscaf',
+          'newblermetavelvetnoscaf',
+          'bambus2metavelvetnoscaf',
+          'bambus2minimus2metavelvetnoscaf',
+          'bambus2newblermetavelvetnoscaf')
+    assemblies$asm_type <- factor(assemblies$asm_type, levels=asm_type_hardcoded_levels)
+
+    # Velvet filled circles, metavelvet unfilled circles
+    shapes <- c(rep(19,7),rep(1,7))
+    names(shapes) <- asm_type_hardcoded_levels
     # Color blind scale from:
     # http://wiki.stdout.org/rcookbook/Graphs/Colors%20%28ggplot2%29/
     # http://jfly.iam.u-tokyo.ac.jp/color/
-    # noscaf black, scaf yellowish, minimus2noscaf blue, newblernoscaf pink 
-    colors <- c("#E69F00","#CC79A7","#000000","#0072B2","#E69F00","#000000","#0072B2","#CC79A7")
+    # noscaf black, scaf orange, minimus2noscaf light blue, newblernoscaf green,
+    # bambus2noscaf dark blue, bambus2minimus red, bambus2newbler pink
+    colors <- rep(c("#000000", "#E69F00", "#56B4E9", "#009E73", "#0072B2", "#D55E00", "#CC79A7"),2)
     names(colors) <- names(shapes)
+    #colorfill <- c("#E69F00","#CC79A7","#000000","#0072B2",NA,NA,NA,NA)
+    #names(colorfill) <- names(shapes)
 
-    g <- ggplot(data=assemblies,aes(x=as.numeric(l50),y=as.numeric(purity),size=assemblies[,opts[['gradient-color-column']]],color=asm_type,shape=asm_type,fill=asm_type))
+    g <- ggplot(data=assemblies,aes(x=as.numeric(l50),y=as.numeric(purity),size=assemblies[,opts[['gradient-color-column']]],color=asm_type,shape=asm_type))
+    # scale_fill_manual("Assembly",values=colorfill[levels(assemblies$asm_type)]) +
     g <- g + geom_point() +
         scale_size_continuous(name=opts[['gradient-color-column']],range=c(1,6)) +
         scale_colour_manual("Assembly",values=colors[levels(assemblies$asm_type)]) +
-        scale_fill_manual("Assembly",values=colors[levels(assemblies$asm_type)]) +
         scale_shape_manual("Assembly",values=shapes[levels(assemblies$asm_type)])
 } else {
     g <- ggplot(data=assemblies,aes(x=as.numeric(l50),y=as.numeric(purity),color=asm_type))
