@@ -166,19 +166,19 @@ plot(pergenome.stats$V10,pergenome.stats$V7,xlim=c(0,1),ylim=c(0,1),xlab="GC con
 dev.off()
 
 # Purity-Length Plot
-max.qcov.per.contig <- aggregate(coordstable$V11, list(coordstable$V13), max)
-names(max.qcov.per.contig) <- c('name','max')
-max.qcov.per.contig$contigLength <- coordstable$V9[match(max.qcov.per.contig$name, coordstable$V13)]
+max.purity.per.contig <- aggregate(coordstable$V11 * coordstable$V7 / 10000, list(coordstable$V13), max)
+names(max.purity.per.contig) <- c('name','max')
+max.purity.per.contig$contigLength <- coordstable$V9[match(max.purity.per.contig$name, coordstable$V13)]
 pdf(paste(sep='',args[[4]],'/purity-length.pdf'))
-length.breaks <- hist(max.qcov.per.contig$contigLength, plot=FALSE)
+length.breaks <- hist(max.purity.per.contig$contigLength, plot=FALSE)
 length.bounds.matrix <- cbind(
     lower=length.breaks$breaks[-length(length.breaks$breaks)],
     upper=length.breaks$breaks[-1])
 mean.max.contig.cov.by.length <- apply(length.bounds.matrix, 1, function(x) {
-    colMeans(subset(max.qcov.per.contig,
+    colMeans(subset(max.purity.per.contig,
         contigLength > x['lower'] & contigLength < x['upper'],
         select=max))
 })
 write.table(data.frame(lower=length.bounds.matrix[,'lower'],mid=length.breaks$mid,upper=length.bounds.matrix[,'upper'],counts=length.breaks$counts,mean_max_contig_cov=mean.max.contig.cov.by.length),quote=FALSE,file=paste(sep='',args[[4]],'/purity-length-hist.tab'))
-plot(length.breaks$mid,mean.max.contig.cov.by.length,lwd=log(length.breaks$counts),ylab="Purity",xlab="Contig length",ylim=c(0,100))
+plot(length.breaks$mid,mean.max.contig.cov.by.length,lwd=log(length.breaks$counts),ylab="Purity",xlab="Contig length",ylim=c(0,1))
 dev.off()
