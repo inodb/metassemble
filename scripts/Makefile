@@ -1,11 +1,16 @@
 # MetAssemble Pipeline. This Makefile is NOT meant to build the scripts but to
 # run the metassemble scripts on an Illumina paired end library. Change input
-# parameters accordingly for each library. Currently only works with sbatch,
-# that we use at our server with proper scheduling of job dependency. The idea
-# is to be able to get the specific commands without sbatch for each assembly
-# as well by using something like make -Bn outdir/velvet/noscaf/contigs.fasta,
-# which should allow us to easily share assemblies with their recipes.
-#TODO: so many PHONY target, might want to cut that down a little bit?
+# parameters accordingly for each library, either in the file or pass as
+# argument. Currently only works with sbatch, that we use at our server. This
+# version includes proper scheduling of job dependencies except for bambus2. I
+# do those separately with 'make bambus2' after constructing the contigs
+# because I have not found time to implement that yet and a lot of assemblies
+# fail anyway so it didn't make much sense to schedule the bambus2 jobs
+# immediately. The Makefile can also be run without SBATCH by setting
+# USE_SBATCH=no. Please use 'make -j NROFJOBS' in that case to parallelize. If
+# one wants the commands for a specific assembly one can use 'make -Bn
+# path/to/contigs.fasta', e.g.:
+# 'make -Bn ma-out/velvet/noscaf/noscaf_31/contigs.fasta'
 
 # Input parameters
 FASTQ1=500pg_even_GGACTCCT-CTCTCTAT_L003_R1_001.fastq
@@ -13,13 +18,13 @@ FASTQ2=500pg_even_GGACTCCT-CTCTCTAT_L003_R2_001.fastq
 FASTQBASE=500pg_even
 SCRIPTDIR=/bubo/home/h16/inod/glob/github/metassemble/scripts
 # sbatch specific input
-USE_SBATCH=yes
+USE_SBATCH=no
 SB_ACCOUNT=b2010008
 SB_USER=inod
 SB_WRAPPER_SCRIPT=/bubo/home/h16/inod/bin/sbatch_job # like --wrap with extras
 
 # Output parameters
-OUT=ma2-out
+OUT=ma-out
 PRC_READS_OUT=$(OUT)/processed-reads
 ASM_OUT=$(OUT)/assemblies
 

@@ -84,3 +84,4 @@ g <- g +
     opts(title=opts[['title']])
 print(g)
 graphics.off()
+ggsave(paste(substr(output.pdf,1,nchar(output.pdf)-4),".eps",sep=""),g)

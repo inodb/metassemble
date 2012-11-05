@@ -6,8 +6,6 @@ duplicates.
 Usage:
     bash `basename $0` [options] <reads1> <reads2> <qname> <ref> <rname> <outdir>
 Options:
-    -a      Output afg file by determining frament size with Picard and use
-            Abyss samtoafg script afterwards.
     -c      Calculate coverage with BEDTools
     -k      Keep all output from intermediate steps.
     -h      This help documentation.
@@ -62,6 +60,7 @@ if [ ! -e $MRKDUP ]; then
     exit 1
 fi
 
+mkdir -p $OUTDIR
 cd $OUTDIR
 
 # Index reference, Burrows-Wheeler Transform
