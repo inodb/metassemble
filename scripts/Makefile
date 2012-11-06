@@ -211,30 +211,29 @@ BAMBUS2_RULE=\
 	bash $(SCRIPTDIR)/assembly/scaf-asm-bambus2.sh \
 		$(@D)/contigs_${FASTQBASE}-smds.bam \
 		$< bambus2; \
-	rm $(@D)/contigs_${FASTQBASE}-smds.bam; \
-	touch $(@D)/bambus2.done
-%/bambus2/bambus2.done: %/all-merged.fasta
+	rm $(@D)/contigs_${FASTQBASE}-smds.bam; 
+%/bambus2/bambus2.scaffold.linear.fasta: %/all-merged.fasta
 ifeq ($(USE_SBATCH),yes)
 	sbatch $(call get_sbatch_job_par,bambus2minimus2,-p node -t 1-00:00:00) \
 	"$(BAMBUS2_RULE)"
 else
 	$(BAMBUS2_RULE)
 endif
-%/bambus2/bambus2.done: %/contigs.fa
+%/bambus2/bambus2.scaffold.linear.fasta: %/contigs.fa
 ifeq ($(USE_SBATCH),yes)
 	sbatch $(call get_sbatch_job_par,bambus2vnoscaf,-p node -t 1-00:00:00) \
 	"$(BAMBUS2_RULE)"
 else
 	$(BAMBUS2_RULE)
 endif
-%/bambus2/bambus2.done: %/454AllContigs.fna
+%/bambus2/bambus2.scaffold.linear.fasta: %/454AllContigs.fna
 ifeq ($(USE_SBATCH),yes)
 	sbatch $(call get_sbatch_job_par,bambus2newbler,-p node -t 1-00:00:00) \
 	"$(BAMBUS2_RULE)"
 else
 	$(BAMBUS2_RULE)
 endif
-%/bambus2/bambus2.done: %/meta-velvetg.contigs.fa
+%/bambus2/bambus2.scaffold.linear.fasta: %/meta-velvetg.contigs.fa
 ifeq ($(USE_SBATCH),yes)
 	sbatch $(call get_sbatch_job_par,bambus2mvnoscaf,-p node -t 1-00:00:00) \
 	"$(BAMBUS2_RULE)"
@@ -271,12 +270,12 @@ newbler: newblervelvet newblermetavelvet
 newblervelvet: $(NEWBLER_OUT_VELVET_NOSCAF)/454AllContigs.fna
 newblermetavelvet: $(NEWBLER_OUT_METAVELVET_NOSCAF)/454AllContigs.fna
 
-bambus2: $(foreach contigs, $(ALLASMCONTIGS), $(dir $(contigs))bambus2/bambus2.done)
+bambus2: $(BAMBUS2SCAFFOLDS)
 
 # Remove output, often one is only interested in keeping the assemblies, make keepcontigsonly allows you to do that
 keepcontigsonly:
 	-find $(ASM_OUT)/* -type f | grep -v $(foreach contigs,$(wildcard $(ALLASMCONTIGS)),-e $(contigs)) -e $(VELVET_OUT_NOSCAF)/noscaf_$(OKMAX)/Sequences -e slurm | xargs rm
-cleanall:
+clean:
 	-rm -rf $(OUT)
 cleanasm:
 	-rm -rf $(ASM_OUT)

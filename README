@@ -1,16 +1,41 @@
 MetAssemble
 ===========
 
-MetAssemble is a collection of scripts for executing various metagenomic
-assembly programs. Several pipelines will be available to turn a set of reads
-from an environmental sample to a full-blown assembly.
+Content
+1. Overview
+2. Dependencies
+3. Usage
+A. Assembly Output List
 
-Currently supported input:
+
+1. Overview
+===========
+
+MetAssemble is a pipeline that runs several metagenomic assembly strategies
+combining Velvet, Meta-Velvet, Minimus2 and Bambus2 on Illumina paired end
+reads. The pipeline was originally developed to validate the performance of the
+individual strategies, but can be used to perform the assembly strategies
+without validation as well.  The pipeline is written in GNU Make and consists
+of two parts, the first part performs the various assembly strategies
+(Makefile). The second part validates the assemblies done in the first part
+(Makefile-validate-assemblies). Currently the code works specifically in
+combination with sbatch to launch jobs with correct dependencies and resource
+allocations on our computing facility.  With a little tweaking the code can be
+used on another system that uses sbatch (adjust the partition names and the
+account used to schedule the job). The pipeline also works out of the box
+without sbatch but do note that running all the assemblies can take a very long
+time in that case so please specify the number of jobs with 'make -n' to gain
+some speed-up.
+
+2. Dependencies
+===============
+
+Supported input:
 - Illumina fastq CASAVA v1.8 paired end reads
 
+-- Makefile --
 Features four steps of the metagenomic assembly pipeline:
 1) Read processing.
-- PCR duplicate removal (Not implemented yet)
 - Quality trimming
     * Trim.pl
     http://wiki.bioinformatics.ucdavis.edu/index.php/Trim.pl
@@ -18,6 +43,8 @@ Features four steps of the metagenomic assembly pipeline:
 - De Bruijn graph
     * Velvet 1.2.01
     http://www.ebi.ac.uk/~zerbino/velvet/
+    * Meta-Velvet 1.2.01
+    http://metavelvet.dna.bio.keio.ac.jp/
 3) Merging contigs
 - With cd-hit and minimus2
 http://ged.msu.edu/angus/metag-assembly-2011/velvet-multik.html
@@ -25,6 +52,7 @@ http://ged.msu.edu/angus/metag-assembly-2011/velvet-multik.html
     http://weizhong-lab.ucsd.edu/cd-hit/
     * Minimus2 from Amos
     http://sourceforge.net/apps/mediawiki/amos/index.php?title=Minimus2
+- Newbler RunAssembly 2.6 
 4) Scaffolding
 - Construct linkage information by mapping reads to contigs
     * BWA
@@ -32,4 +60,250 @@ http://ged.msu.edu/angus/metag-assembly-2011/velvet-multik.html
 - Scaffold contigs
     * Bambus2
     http://sourceforge.net/apps/mediawiki/amos/index.php?title=Bambus2
-    * BESST (not released yet)
+
+-- Makefile-validate-assemblies --
+- Mapping contigs to reference
+    * MUMmer 3.23
+    http://sourceforge.net/projects/mummer/files/
+
+3. Usage
+========
+
+To run all assemblies copy Makefile to the directory of the Illumina paired end
+reads. Adjust the four input parameters in the Makefile or pass them as
+arguments:
+
+# Input parameters
+FASTQ1=500pg_even_GGACTCCT-CTCTCTAT_L003_R1_001.fastq
+FASTQ2=500pg_even_GGACTCCT-CTCTCTAT_L003_R2_001.fastq
+FASTQBASE=500pg_even
+SCRIPTDIR=/bubo/home/h16/inod/glob/github/metassemble/scripts
+
+Output parameters can be adjusted as well, by default everything is outputted
+to ./ma-out/. Assemblies are in ./ma-out/assemblies and the quality trimmed
+reads are in ma-out/processed-reads. If your system uses sbatch to schedule
+jobs, change USE_SBATCH to yes and change account, userid and partition
+parameters accordingly. The node partition in the code has 24GB memory and 8
+cores, the core partition, one core and 3 GB. The set allocations worked for
+all libraries smaller than 12M pairs (24M reads total). Resource allocation is
+static, not based on input file sizes.
+
+After setting input parameters and possibly sbatch parameters. Running 'make
+all' will run all assemblies. They can be found in section A. In case one uses
+sbatch the Bambus2 assemblies have to be run separately afterwards with
+'make bambus2'. If sbatch is not used, use 'make -j <nrofjobs>' and specify the
+number of jobs to run simultaneously to gain some speed-up.
+
+The output of all the assemblies are relative to ma-out/assemblies/ and follow
+this structure:
+
+velvet/noscaf/noscaf_%/contigs.fa                                     
+# velvetg -scaffolding no and % is the kmer size
+velvet/scaf/scaf_%/contigs.fa                                         
+# velvetg -scaffolding yes and % is the kmer size
+metavelvet/noscaf/noscaf_%/meta-velvetg.contigs.fa                    
+# meta-velvetg -scaffolding no and % is the kmer size
+metavelvet/scaf/scaf_%/meta-velvetg.contigs.fa                        
+# meta-velvetg -scaffolding yes and % is the kmer size
+velvet/noscaf/minimus2/all-merged.fasta                               
+# Minimus2 merged velvet noscaf assembly
+velvet/noscaf/newbler/454AllContigs.fna                               
+# Newbler merged velvet noscaf assembly
+metavelvet/noscaf/minimus2/all-merged.fasta                           
+# Minimus2 merged metavelvet noscaf assembly
+metavelvet/noscaf/newbler/454AllContigs.fna                           
+# Newbler merged metavelvet noscaf assembly
+velvet/noscaf/noscaf_%/bambus2/bambus2.scaffold.linear.fasta          
+# Bambus 2 scaffolding of velvetg -scaffolding no and % is kmer size
+metavelvet/noscaf/noscaf_%/bambus2/bambus2.scaffold.linear.fasta      
+# Bambus 2 scaffolding of meta-velvetg -scaffoldng no and % is kmer size
+velvet/noscaf/minimus2/bambus2/bambus2.scaffold.linear.fasta          
+# Bambus2 scaffolding of minimus2 merged velvet no scaf assemblies
+velvet/noscaf/newbler/bambus2/bambus2.scaffold.linear.fasta           
+# Bambus2 scaffolding of newbler merged velvet no scaf assemblies
+
+NOTE: kmer size between 31 and 84, change Makefile for larger or smaller kmers
+
+One assembly can be done with:
+make /path/to/assembly/assembly.fasta
+For instance:
+make ma-out/assemblies/velvet/noscaf/noscaf_31/contigs.fa
+To only get the commands for a specific assembly type:
+make -Bn /path/to/assembly/assembly.fasta
+A full listing of all assemblies can be found below.
+
+* TODO: Usage for Makefile-validate-assemblies
+
+
+A. Assembly output listing
+==========================
+ma-out/assemblies/velvet/noscaf/noscaf_31/contigs.fa
+ma-out/assemblies/velvet/noscaf/noscaf_33/contigs.fa
+ma-out/assemblies/velvet/noscaf/noscaf_35/contigs.fa
+ma-out/assemblies/velvet/noscaf/noscaf_37/contigs.fa
+ma-out/assemblies/velvet/noscaf/noscaf_39/contigs.fa
+ma-out/assemblies/velvet/noscaf/noscaf_41/contigs.fa
+ma-out/assemblies/velvet/noscaf/noscaf_43/contigs.fa
+ma-out/assemblies/velvet/noscaf/noscaf_45/contigs.fa
+ma-out/assemblies/velvet/noscaf/noscaf_47/contigs.fa
+ma-out/assemblies/velvet/noscaf/noscaf_49/contigs.fa
+ma-out/assemblies/velvet/noscaf/noscaf_51/contigs.fa
+ma-out/assemblies/velvet/noscaf/noscaf_53/contigs.fa
+ma-out/assemblies/velvet/noscaf/noscaf_55/contigs.fa
+ma-out/assemblies/velvet/noscaf/noscaf_57/contigs.fa
+ma-out/assemblies/velvet/noscaf/noscaf_59/contigs.fa
+ma-out/assemblies/velvet/noscaf/noscaf_61/contigs.fa
+ma-out/assemblies/velvet/noscaf/noscaf_63/contigs.fa
+ma-out/assemblies/velvet/noscaf/noscaf_65/contigs.fa
+ma-out/assemblies/velvet/noscaf/noscaf_67/contigs.fa
+ma-out/assemblies/velvet/noscaf/noscaf_69/contigs.fa
+ma-out/assemblies/velvet/noscaf/noscaf_71/contigs.fa
+ma-out/assemblies/velvet/noscaf/noscaf_73/contigs.fa
+ma-out/assemblies/velvet/noscaf/noscaf_75/contigs.fa
+ma-out/assemblies/velvet/noscaf/noscaf_77/contigs.fa
+ma-out/assemblies/velvet/noscaf/noscaf_79/contigs.fa
+ma-out/assemblies/velvet/noscaf/noscaf_81/contigs.fa
+ma-out/assemblies/velvet/noscaf/noscaf_83/contigs.fa
+ma-out/assemblies/metavelvet/noscaf/noscaf_31/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/noscaf/noscaf_33/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/noscaf/noscaf_35/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/noscaf/noscaf_37/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/noscaf/noscaf_39/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/noscaf/noscaf_41/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/noscaf/noscaf_43/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/noscaf/noscaf_45/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/noscaf/noscaf_47/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/noscaf/noscaf_49/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/noscaf/noscaf_51/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/noscaf/noscaf_53/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/noscaf/noscaf_55/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/noscaf/noscaf_57/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/noscaf/noscaf_59/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/noscaf/noscaf_61/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/noscaf/noscaf_63/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/noscaf/noscaf_65/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/noscaf/noscaf_67/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/noscaf/noscaf_69/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/noscaf/noscaf_71/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/noscaf/noscaf_73/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/noscaf/noscaf_75/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/noscaf/noscaf_77/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/noscaf/noscaf_79/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/noscaf/noscaf_81/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/noscaf/noscaf_83/meta-velvetg.contigs.fa
+ma-out/assemblies/velvet/noscaf/minimus2/all-merged.fasta
+ma-out/assemblies/metavelvet/noscaf/minimus2/all-merged.fasta
+ma-out/assemblies/velvet/noscaf/newbler/454AllContigs.fna
+ma-out/assemblies/metavelvet/noscaf/newbler/454AllContigs.fna
+ma-out/assemblies/velvet/scaf/scaf_31/contigs.fa
+ma-out/assemblies/velvet/scaf/scaf_33/contigs.fa
+ma-out/assemblies/velvet/scaf/scaf_35/contigs.fa
+ma-out/assemblies/velvet/scaf/scaf_37/contigs.fa
+ma-out/assemblies/velvet/scaf/scaf_39/contigs.fa
+ma-out/assemblies/velvet/scaf/scaf_41/contigs.fa
+ma-out/assemblies/velvet/scaf/scaf_43/contigs.fa
+ma-out/assemblies/velvet/scaf/scaf_45/contigs.fa
+ma-out/assemblies/velvet/scaf/scaf_47/contigs.fa
+ma-out/assemblies/velvet/scaf/scaf_49/contigs.fa
+ma-out/assemblies/velvet/scaf/scaf_51/contigs.fa
+ma-out/assemblies/velvet/scaf/scaf_53/contigs.fa
+ma-out/assemblies/velvet/scaf/scaf_55/contigs.fa
+ma-out/assemblies/velvet/scaf/scaf_57/contigs.fa
+ma-out/assemblies/velvet/scaf/scaf_59/contigs.fa
+ma-out/assemblies/velvet/scaf/scaf_61/contigs.fa
+ma-out/assemblies/velvet/scaf/scaf_63/contigs.fa
+ma-out/assemblies/velvet/scaf/scaf_65/contigs.fa
+ma-out/assemblies/velvet/scaf/scaf_67/contigs.fa
+ma-out/assemblies/velvet/scaf/scaf_69/contigs.fa
+ma-out/assemblies/velvet/scaf/scaf_71/contigs.fa
+ma-out/assemblies/velvet/scaf/scaf_73/contigs.fa
+ma-out/assemblies/velvet/scaf/scaf_75/contigs.fa
+ma-out/assemblies/velvet/scaf/scaf_77/contigs.fa
+ma-out/assemblies/velvet/scaf/scaf_79/contigs.fa
+ma-out/assemblies/velvet/scaf/scaf_81/contigs.fa
+ma-out/assemblies/velvet/scaf/scaf_83/contigs.fa
+ma-out/assemblies/metavelvet/scaf/scaf_31/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/scaf/scaf_33/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/scaf/scaf_35/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/scaf/scaf_37/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/scaf/scaf_39/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/scaf/scaf_41/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/scaf/scaf_43/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/scaf/scaf_45/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/scaf/scaf_47/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/scaf/scaf_49/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/scaf/scaf_51/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/scaf/scaf_53/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/scaf/scaf_55/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/scaf/scaf_57/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/scaf/scaf_59/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/scaf/scaf_61/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/scaf/scaf_63/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/scaf/scaf_65/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/scaf/scaf_67/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/scaf/scaf_69/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/scaf/scaf_71/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/scaf/scaf_73/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/scaf/scaf_75/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/scaf/scaf_77/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/scaf/scaf_79/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/scaf/scaf_81/meta-velvetg.contigs.fa
+ma-out/assemblies/metavelvet/scaf/scaf_83/meta-velvetg.contigs.fa
+ma-out/assemblies/velvet/noscaf/noscaf_31/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/velvet/noscaf/noscaf_33/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/velvet/noscaf/noscaf_35/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/velvet/noscaf/noscaf_37/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/velvet/noscaf/noscaf_39/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/velvet/noscaf/noscaf_41/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/velvet/noscaf/noscaf_43/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/velvet/noscaf/noscaf_45/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/velvet/noscaf/noscaf_47/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/velvet/noscaf/noscaf_49/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/velvet/noscaf/noscaf_51/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/velvet/noscaf/noscaf_53/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/velvet/noscaf/noscaf_55/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/velvet/noscaf/noscaf_57/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/velvet/noscaf/noscaf_59/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/velvet/noscaf/noscaf_61/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/velvet/noscaf/noscaf_63/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/velvet/noscaf/noscaf_65/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/velvet/noscaf/noscaf_67/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/velvet/noscaf/noscaf_69/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/velvet/noscaf/noscaf_71/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/velvet/noscaf/noscaf_73/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/velvet/noscaf/noscaf_75/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/velvet/noscaf/noscaf_77/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/velvet/noscaf/noscaf_79/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/velvet/noscaf/noscaf_81/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/velvet/noscaf/noscaf_83/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/metavelvet/noscaf/noscaf_31/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/metavelvet/noscaf/noscaf_33/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/metavelvet/noscaf/noscaf_35/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/metavelvet/noscaf/noscaf_37/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/metavelvet/noscaf/noscaf_39/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/metavelvet/noscaf/noscaf_41/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/metavelvet/noscaf/noscaf_43/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/metavelvet/noscaf/noscaf_45/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/metavelvet/noscaf/noscaf_47/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/metavelvet/noscaf/noscaf_49/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/metavelvet/noscaf/noscaf_51/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/metavelvet/noscaf/noscaf_53/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/metavelvet/noscaf/noscaf_55/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/metavelvet/noscaf/noscaf_57/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/metavelvet/noscaf/noscaf_59/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/metavelvet/noscaf/noscaf_61/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/metavelvet/noscaf/noscaf_63/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/metavelvet/noscaf/noscaf_65/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/metavelvet/noscaf/noscaf_67/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/metavelvet/noscaf/noscaf_69/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/metavelvet/noscaf/noscaf_71/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/metavelvet/noscaf/noscaf_73/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/metavelvet/noscaf/noscaf_75/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/metavelvet/noscaf/noscaf_77/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/metavelvet/noscaf/noscaf_79/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/metavelvet/noscaf/noscaf_81/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/metavelvet/noscaf/noscaf_83/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/velvet/noscaf/minimus2/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/metavelvet/noscaf/minimus2/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/velvet/noscaf/newbler/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/metavelvet/noscaf/newbler/bambus2/bambus2.scaffold.linear.fasta
