@@ -69,6 +69,11 @@ then
     bwa index $REF
 fi
 
+if [[ ! -s $Q1 || ! -s $Q2 ]]; then
+    echo "$Q1 or $Q2 is empty" >&2
+    exit 1
+fi
+
 # Find SA coordinates in the reads
 bwa aln $REF -1 $Q1 > ${QNAME}1.sai
 bwa aln $REF -2 $Q2 > ${QNAME}2.sai
