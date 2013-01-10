@@ -21,15 +21,19 @@ source $SCRIPTDIR/../global-functions.incl
 # Default parameters
 RMTMPFILES=true
 CALCCOV=false
+THREADS=1
 
 # Parse options
-while getopts "khc" opt; do
+while getopts "khct:" opt; do
     case $opt in
         c)
             CALCCOV=true
             ;;
         k)
             RMTMPFILES=false
+            ;;
+        t)
+            THREADS=$OPTARG
             ;;
         h)
             echo "$HELPDOC"
@@ -75,8 +79,8 @@ if [[ ! -s $Q1 || ! -s $Q2 ]]; then
 fi
 
 # Find SA coordinates in the reads
-bwa aln $REF -1 $Q1 > ${QNAME}1.sai
-bwa aln $REF -2 $Q2 > ${QNAME}2.sai
+bwa aln -t $THREADS $REF -1 $Q1 > ${QNAME}1.sai
+bwa aln -t $THREADS $REF -2 $Q2 > ${QNAME}2.sai
 
 # Align Paired end and bam it
 bwa sampe $REF ${QNAME}1.sai ${QNAME}2.sai $Q1 $Q2 > ${RNAME}_${QNAME}.sam

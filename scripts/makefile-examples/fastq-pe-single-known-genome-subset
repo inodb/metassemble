@@ -1,0 +1,32 @@
+# Subset paired illumina reads
+#Input
+PAIR1=pair1.fastq
+PAIR2=pair2.fastq
+
+#Define
+GENOME_LEN=2571406
+
+#Output
+COVERAGE_SETS=$(shell echo cov_{20,40,60,80,100,150,200}/pair.fastq)
+UNFILTERED=unfiltered/pair.fastq
+
+all: $(COVERAGE_SETS)
+
+# Subset pairs based on desired coverage
+cov_%/pair.fastq: $(PAIR1) $(PAIR2)
+	mkdir -p $(@D)
+	select-random-pairs.py $(PAIR1) $(PAIR2) $(shell echo $$(($(GENOME_LEN) / 100 * $*))) > cov_$*/pair.fastq
+
+pair.fastq: $(PAIR1) $(PAIR2)
+	shuffleSequences_fastq.pl $(PAIR1) $(PAIR2) pair.fastq
+
+# unfiltered
+$(UNFILTERED): pair.fastq
+	mkdir -p $(@D)
+	cd $(@D)
+	ln -s ../pair.fastq $(basename $(UNFILTERED)).fastq
+
+clean:
+	$(foreach cov, $(COVERAGE_SETS), rm -rf $(dir $(cov)))
+
+.PHONY: all clean

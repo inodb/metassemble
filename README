@@ -57,6 +57,8 @@ http://ged.msu.edu/angus/metag-assembly-2011/velvet-multik.html
 - Construct linkage information by mapping reads to contigs
     * BWA
     http://bio-bwa.sourceforge.net/
+    * Picard MarkDuplicates
+    http://picard.sourceforge.net/index.shtml
 - Scaffold contigs
     * Bambus2
     http://sourceforge.net/apps/mediawiki/amos/index.php?title=Bambus2
@@ -305,5 +307,5 @@ ma-out/assemblies/metavelvet/noscaf/noscaf_81/bambus2/bambus2.scaffold.linear.fa
 ma-out/assemblies/metavelvet/noscaf/noscaf_83/bambus2/bambus2.scaffold.linear.fasta
 ma-out/assemblies/velvet/noscaf/minimus2/bambus2/bambus2.scaffold.linear.fasta
 ma-out/assemblies/metavelvet/noscaf/minimus2/bambus2/bambus2.scaffold.linear.fasta
-ma-out/assemblies/velvet/noscaf/newbler/bambus2/bambus2.scaffold.linear.fasta
+MA-out/assemblies/velvet/noscaf/newbler/bambus2/bambus2.scaffold.linear.fasta
 ma-out/assemblies/metavelvet/noscaf/newbler/bambus2/bambus2.scaffold.linear.fasta

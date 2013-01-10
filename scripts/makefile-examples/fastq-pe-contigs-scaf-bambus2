@@ -1,0 +1,26 @@
+# Scaffold illumina paired reads with bambus2
+# Input
+PAIR1=pair1.fastq
+PAIR2=pair2.fastq
+CONTIGS=contigs.fa
+MASCRIPTDIR=/bubo/home/h16/inod/glob/github/metassemble/scripts
+
+# Output
+BAMOUT=bambus2/contigs_pair-smds.bam
+BAMBUS2OUT=bambus2/bambus2.scaffold.linear.fasta
+
+.PHONY: all
+all: $(BAMBUS2OUT)
+
+$(BAMOUT): $(PAIR1) $(PAIR2) $(CONTIGS)
+	mkdir -p $(@D)
+	bash $(MASCRIPTDIR)/validate/map-bwa-markduplicates.sh \
+		$(PAIR1) $(PAIR2) pair $(CONTIGS) contigs bambus2
+
+$(BAMBUS2OUT): bambus2/contigs_pair-smds.bam $(CONTIGS)
+	bash $(MASCRIPTDIR)/assembly/scaf-asm-bambus2.sh \
+		$< $(CONTIGS) bambus2
+
+.PHONY: clean
+clean:
+	rm -rf bambus2
