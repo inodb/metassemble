@@ -37,8 +37,8 @@ Supported input:
 Features four steps of the metagenomic assembly pipeline:
 1) Read processing.
 - Quality trimming
-    * scythe
-    https://github.com/vsbuffalo/scythe
+    * sickle
+   https://github.com/najoshi/sickle 
 2) Assembling contigs
 - De Bruijn graph
     * Velvet 1.2.01
