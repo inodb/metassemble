@@ -4,6 +4,7 @@ PAIR1=pair1.fastq
 PAIR2=pair2.fastq
 CONTIGS=contigs.fa
 MASCRIPTDIR=/bubo/home/h16/inod/glob/github/metassemble/scripts
+THREADS=1
 
 # Output
 BAMOUT=bambus2/contigs_pair-smds.bam
@@ -15,6 +16,7 @@ all: $(BAMBUS2OUT)
 $(BAMOUT): $(PAIR1) $(PAIR2) $(CONTIGS)
 	mkdir -p $(@D)
 	bash $(MASCRIPTDIR)/validate/map-bwa-markduplicates.sh \
+		-c -t $(THREADS) \
 		$(PAIR1) $(PAIR2) pair $(CONTIGS) contigs bambus2
 
 $(BAMBUS2OUT): bambus2/contigs_pair-smds.bam $(CONTIGS)

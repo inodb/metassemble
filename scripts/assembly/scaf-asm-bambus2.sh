@@ -63,6 +63,7 @@ if [ ! -e $CLEANJAR ]; then
     exit 1
 fi
 
+# TODO: Is it weird that it is in the same dir as the bam, why not an output dir?
 cd $BAMDIR
 
 # Convert to sam and filter unmapped reads

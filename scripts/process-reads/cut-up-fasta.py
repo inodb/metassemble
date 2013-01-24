@@ -36,7 +36,7 @@ def cut_up_fasta(fastfiles, chunk_size, overlap):
                 for split_seq in chunks(record.seq, chunk_size, overlap):
                     print ">%s.%i\n%s" % (record.id, i, split_seq)
                     i = i + 1
-                # Output last chunk twice    
+                # Output last chunk twice
                 print ">%s.%i\n%s" % (record.id, i,
                         record.seq[-chunk_size + overlap:])
             else:
@@ -46,7 +46,7 @@ def cut_up_fasta(fastfiles, chunk_size, overlap):
 
 def chunks(l, n=1999, o=1900):
     """ Yield successive n-sized chunks from l with given overlap o between the
-    chunks. 
+    chunks.
     """
     assert n > o
 

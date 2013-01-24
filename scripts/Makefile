@@ -50,14 +50,13 @@ FASTQ_TRIM_OUT=$(PRC_READS_OUT)/$(FASTQBASE).1.qtrim \
 # qual-type 0 for Sanger quality (or illumina 1.8) type 2 for windowed trimming
 QTRIM_RULE=\
     mkdir -p $(PRC_READS_OUT); \
-    Trim.pl \
-        --qual-type 0 \
-        --type 2 \
-        --pair1 $(FASTQ1) \
-        --pair2 $(FASTQ2) \
-        --outpair1 $(PRC_READS_OUT)/$(FASTQBASE).1.qtrim \
-        --outpair2 $(PRC_READS_OUT)/$(FASTQBASE).2.qtrim \
-        --single $(PRC_READS_OUT)/$(FASTQBASE).qtrim.unpaired; \
+    sickle pe \
+        -f $(FASTQ1) \
+        -r $(FASTQ2) \
+        -t sanger \
+        -o $(PRC_READS_OUT)/$(FASTQBASE).1.qtrim \
+        -p $(PRC_READS_OUT)/$(FASTQBASE).2.qtrim \
+        -s $(PRC_READS_OUT)/$(FASTQBASE).qtrim.unpaired; \
     shuffleSequences_fastq.pl $(PRC_READS_OUT)/$(FASTQBASE).1.qtrim \
         $(PRC_READS_OUT)/$(FASTQBASE).2.qtrim \
         $(PRC_READS_OUT)/$(FASTQBASE).qtrim

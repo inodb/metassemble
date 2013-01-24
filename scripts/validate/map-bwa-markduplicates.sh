@@ -6,6 +6,9 @@ duplicates.
 Usage:
     bash `basename $0` [options] <reads1> <reads2> <qname> <ref> <rname> <outdir>
 Options:
+    -a      Under development: bwa aln options seperated by comma e.g. -a -o0,-e0,-n0,-k0
+            for exact matching
+    -t      Number of threads for bwa aln
     -c      Calculate coverage with BEDTools
     -k      Keep all output from intermediate steps.
     -h      This help documentation.
@@ -22,10 +25,16 @@ source $SCRIPTDIR/../global-functions.incl
 RMTMPFILES=true
 CALCCOV=false
 THREADS=1
+BWA_ALN_OPT=""
 
 # Parse options
-while getopts "khct:" opt; do
+while getopts "a:khct:" opt; do
     case $opt in
+        a)
+            #TODO: Proper bwa aln option catching?
+            #Example exact aln: -o0,-e0,-n0,-k0
+            BWA_ALN_OPT=`echo $OPTARG | sed 's/,/\ /g'`
+            ;;
         c)
             CALCCOV=true
             ;;
@@ -48,10 +57,31 @@ while getopts "khct:" opt; do
 done
 shift $(($OPTIND - 1)) 
 
+if [ "$#" -ne "6" ]
+then
+    echo "Invalid number of arguments: 6 needed but $# supplied" >&2
+    echo "$HELPDOC"
+    exit 1
+fi
 Q1=$(readlink -f $1)
+if [ ! -f "$Q1" ]
+then
+    echo "Pair 1 doesn't exist: $1"
+    exit 1
+fi
 Q2=$(readlink -f $2)
+if [ ! -f "$Q2" ]
+then
+    echo "Pair 2 doesn't exist: $2"
+    exit 1
+fi
 QNAME=$3
 REF=$(readlink -f $4)
+if [ ! -f "$REF" ]
+then
+    echo "Reference doesn't exist: $4"
+    exit 1
+fi
 RNAME=$5
 OUTDIR=${6%/}
 CURDIR=`pwd`
@@ -79,8 +109,8 @@ if [[ ! -s $Q1 || ! -s $Q2 ]]; then
 fi
 
 # Find SA coordinates in the reads
-bwa aln -t $THREADS $REF -1 $Q1 > ${QNAME}1.sai
-bwa aln -t $THREADS $REF -2 $Q2 > ${QNAME}2.sai
+bwa aln $BWA_ALN_OPT -t $THREADS $REF -1 $Q1 > ${QNAME}1.sai
+bwa aln $BWA_ALN_OPT -t $THREADS $REF -2 $Q2 > ${QNAME}2.sai
 
 # Align Paired end and bam it
 bwa sampe $REF ${QNAME}1.sai ${QNAME}2.sai $Q1 $Q2 > ${RNAME}_${QNAME}.sam
@@ -101,9 +131,19 @@ java -jar $MRKDUP \
 samtools sort ${RNAME}_${QNAME}-smd.bam ${RNAME}_${QNAME}-smds
 samtools index ${RNAME}_${QNAME}-smds.bam
 
-# Determine Genome Coverage
+# Determine Genome Coverage and mean coverage per contig
 if $CALCCOV; then
     genomeCoverageBed -ibam ${RNAME}_${QNAME}-smds.bam > ${RNAME}_${QNAME}-smds.coverage
+    awk 'BEGIN {pc=""} 
+    {
+        c=$1;
+        if (c == pc) {
+            cov=cov+$2*$5;
+        } else {
+            print pc,cov;
+            cov=$2*$5;
+        pc=c}
+    } END {print pc,cov}' ${RNAME}_${QNAME}-smds.coverage | tail -n +2 > ${RNAME}_${QNAME}-smds.coverage.percontig
 fi
 
 # Remove temp files
