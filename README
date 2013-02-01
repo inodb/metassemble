@@ -45,6 +45,8 @@ Features four steps of the metagenomic assembly pipeline:
     http://www.ebi.ac.uk/~zerbino/velvet/
     * Meta-Velvet 1.2.01
     http://metavelvet.dna.bio.keio.ac.jp/
+    * Ray
+    http://denovoassembler.sourceforge.net/
 3) Merging contigs
 - With cd-hit and minimus2
 http://ged.msu.edu/angus/metag-assembly-2011/velvet-multik.html
@@ -52,7 +54,10 @@ http://ged.msu.edu/angus/metag-assembly-2011/velvet-multik.html
     http://weizhong-lab.ucsd.edu/cd-hit/
     * Minimus2 from Amos
     http://sourceforge.net/apps/mediawiki/amos/index.php?title=Minimus2
-- Newbler RunAssembly 2.6 
+- Cut up contigs and merge with Newbler RunAssembly 2.6 
+    * scripts/process-reads/cut-up-fasta.py requires Biopython
+    http://biopython.org/wiki/Main_Page
+    * Newbler RunAssembly 2.6 (COMMERCIAL)
 4) Scaffolding
 - Construct linkage information by mapping reads to contigs
     * BWA

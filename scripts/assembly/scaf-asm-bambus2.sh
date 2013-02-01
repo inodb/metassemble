@@ -20,7 +20,7 @@ source $SCRIPTDIR/../global-functions.incl
 RMTMPFILES=true
 
 # Parse options
-while getopts ":h" opt; do
+while getopts ":hk" opt; do
     case $opt in
         k)
             RMTMPFILES=false

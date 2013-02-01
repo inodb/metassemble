@@ -12,7 +12,9 @@
 # path/to/contigs.fasta', e.g.:
 # 'make -Bn ma-out/velvet/noscaf/noscaf_31/contigs.fasta'
 
-# Input parameters
+################################
+# ------ input parameters ---- #
+################################
 FASTQ1=500pg_even_GGACTCCT-CTCTCTAT_L003_R1_001.fastq
 FASTQ2=500pg_even_GGACTCCT-CTCTCTAT_L003_R2_001.fastq
 FASTQBASE=500pg_even
@@ -22,18 +24,31 @@ USE_SBATCH=no
 SB_ACCOUNT=b2010008
 SB_USER=inod
 SB_WRAPPER_SCRIPT=/bubo/home/h16/inod/bin/sbatch_job # like --wrap with extras
+################################
+# ----- /input parameters ---- #
+################################
 
-# Output parameters
+################################
+# ----- output parameters ---- #
+################################
 OUT=ma-out
 PRC_READS_OUT=$(OUT)/processed-reads
 ASM_OUT=$(OUT)/assemblies
+################################
+# ---- /output parameters ---- #
+################################
 
+
+################################
+# ------ sbatch functions ---- #
+################################
 # Function for some default parameters for sbatch job, the shell command
 # returns nothing, it is just to make sure output directory exists for the
 # slurm file.
-get_sbatch_job_par=-J $1.$(FASTQBASE) --output=$(@D)/slurm-$1.out --error=$(@D)/slurm-$1.err \
+# $1 is rulename, $3 is directory and $2 are sbatch parameters
+get_sbatch_job_par=-J $1.$(FASTQBASE) --output=$3slurm-$1.out --error=$3slurm-$1.err \
 				   -A $(SB_ACCOUNT) $2 $(SB_WRAPPER_SCRIPT) \
-				   $(shell mkdir -p $(@D)) 
+				   $(shell mkdir -p $3) 
 # Generates the job dependency parameters - works only for two job names atm,
 # but can be easily extended, not sure how to generalize for all given
 # arguments
@@ -42,8 +57,13 @@ $(eval jobnames=$1.$(FASTQBASE))
 $(if $2,$(eval jobnames=$(jobnames),$2.$(FASTQBASE)))
 squeue --noheader -u $(SB_USER) -n $(jobnames) | awk '{if (NR == 1) {printf "-d afterok"} printf(":%s",$$1)}'
 endef
+################################
+# ----- /sbatch functions ---- #
+################################
 
-# Quality trim
+################################
+# ------ quality trim -------- #
+################################
 FASTQ_TRIM_OUT=$(PRC_READS_OUT)/$(FASTQBASE).1.qtrim \
                $(PRC_READS_OUT)/$(FASTQBASE).2.qtrim \
                $(PRC_READS_OUT)/$(FASTQBASE).qtrim.unpaired
@@ -62,12 +82,17 @@ QTRIM_RULE=\
         $(PRC_READS_OUT)/$(FASTQBASE).qtrim
 $(PRC_READS_OUT)/$(FASTQBASE).qtrim : $(FASTQ1) $(FASTQ2)
 ifeq ($(USE_SBATCH),yes)
-	sbatch $(call get_sbatch_job_par,qtrim,-p core -t 6:00:00) "$(QTRIM_RULE)"
+	sbatch $(call get_sbatch_job_par,qtrim,-p core -t 6:00:00,$(@D)) "$(QTRIM_RULE)"
 else
 	$(QTRIM_RULE)
 endif
+################################
+# ------ /quality trim ------- #
+################################
 
-# Velvet
+################################
+# ---------- velveth --------- #
+################################
 KMIN=31
 KMAX=84
 STEPSIZE=2
@@ -90,14 +115,19 @@ VELVETH_RULE=\
 	touch $(VELVETH_OUT_SIGNAL_FILE)
 $(VELVETH_OUT_SIGNAL_FILE) : $(PRC_READS_OUT)/$(FASTQBASE).qtrim
 ifeq ($(USE_SBATCH),yes)
-	sbatch $(shell $(call get_job_dependencies,qtrim)) $(call get_sbatch_job_par,velveth,-p node -C mem24GB -t 1-00:00:00) \
+	sbatch $(shell $(call get_job_dependencies,qtrim)) $(call get_sbatch_job_par,velveth,-p node -C mem24GB -t 1-00:00:00,$(@D)) \
 		"$(VELVETH_RULE)"
 else
 	$(VELVETH_RULE)
 endif
 $(VELVETH_OUT)/velveth_%/Sequences : $(VELVETH_OUT_SIGNAL_FILE)
-	
+################################
+# --------- /velveth --------- #
+################################
 
+################################
+# --------- velvetg ---------- #
+################################
 velvetg_rule=\
     mkdir -p $(dir $@); \
     velvetg $(dir $<) $1 || { echo 'velvetg $1 failed.' >&2; }; \
@@ -106,7 +136,7 @@ velvetg_rule=\
 # different folder, so velveth output can be reused
 $(VELVET_OUT_NOSCAF)/noscaf_%/contigs.fa : $(VELVETH_OUT)/velveth_%/Sequences
 ifeq ($(USE_SBATCH),yes)
-	sbatch $(shell $(call get_job_dependencies,velveth)) $(call get_sbatch_job_par,vgnoscaf$*,-p node -t 02:00:00) \
+	sbatch $(shell $(call get_job_dependencies,velveth)) $(call get_sbatch_job_par,vgnoscaf$*,-p node -t 02:00:00,$(@D)) \
 		"$(call velvetg_rule,-scaffolding no)"
 else
 	$(call velvetg_rule,-scaffolding no)
@@ -115,13 +145,18 @@ endif
 # be set otherwise scaffolding is not performed
 $(VELVET_OUT_SCAF)/scaf_%/contigs.fa : $(VELVETH_OUT)/velveth_%/Sequences
 ifeq ($(USE_SBATCH),yes)
-	sbatch $(shell $(call get_job_dependencies,velveth)) $(call get_sbatch_job_par,vgscaf$*,-p node -t 02:00:00) \
+	sbatch $(shell $(call get_job_dependencies,velveth)) $(call get_sbatch_job_par,vgscaf$*,-p node -t 02:00:00,$(@D)) \
 		"$(call velvetg_rule,-scaffolding no -exp_cov auto)"
 else
 	$(call velvetg_rule,-scaffolding no -exp_cov auto)
 endif
+################################
+# --------- /velvetg --------- #
+################################
 
-# Metavelvet
+################################
+# ------- meta-velvetg ------- #
+################################
 METAVELVET_OUT=$(ASM_OUT)/metavelvet
 METAVELVET_OUT_NOSCAF=$(METAVELVET_OUT)/noscaf
 METAVELVETH_OUT_NOSCAF=$(shell echo $(METAVELVET_OUT_NOSCAF)/noscaf_{$(KMIN)..$(OKMAX)..$(STEPSIZE)}/Sequences)
@@ -138,19 +173,25 @@ metavelvetg_rule=\
     mv $(dir $<)meta-velvetg.contigs.fa $(dir $@)
 $(METAVELVET_OUT_NOSCAF)/noscaf_%/meta-velvetg.contigs.fa : $(VELVETH_OUT)/velveth_%/Sequences
 ifeq ($(USE_SBATCH),yes)
-	sbatch $(shell $(call get_job_dependencies,velveth)) $(call get_sbatch_job_par,mvgnoscaf$*,-p node -t 02:00:00) \
+	sbatch $(shell $(call get_job_dependencies,velveth)) $(call get_sbatch_job_par,mvgnoscaf$*,-p node -t 02:00:00,$(@D)) \
 		"$(call metavelvetg_rule,-scaffolding no)"
 else
 	$(call metavelvetg_rule,-scaffolding no)
 endif
 $(METAVELVET_OUT_SCAF)/scaf_%/meta-velvetg.contigs.fa : $(VELVETH_OUT)/velveth_%/Sequences
 ifeq ($(USE_SBATCH),yes)
-	sbatch $(shell $(call get_job_dependencies,velveth)) $(call get_sbatch_job_par,mvgscaf$*,-p node -t 02:00:00) \
+	sbatch $(shell $(call get_job_dependencies,velveth)) $(call get_sbatch_job_par,mvgscaf$*,-p node -t 02:00:00,$(@D)) \
 		"$(call metavelvetg_rule,-scaffolding yes)"
 else
 	$(call metavelvetg_rule,-scaffolding yes)
 endif
+################################
+# ------- /meta-velvetg ------ #
+################################
 
+################################
+# --------- minimus2  -------- #
+################################
 # Minimus2
 MINIMUS2_OUT_VELVET_NOSCAF=$(VELVET_OUT_NOSCAF)/minimus2
 MINIMUS2_OUT_METAVELVET_NOSCAF=$(METAVELVET_OUT_NOSCAF)/minimus2
@@ -161,20 +202,25 @@ MINIMUS2_RULE=\
         $(@D) $^
 $(MINIMUS2_OUT_VELVET_NOSCAF)/all-merged.fasta : $(VELVETG_OUT_NOSCAF)
 ifeq ($(USE_SBATCH),yes)
-	sbatch $(shell $(call get_job_dependencies,vgnoscaf$(OKMAX))) $(call get_sbatch_job_par,minimus2vnoscaf,-p node -t 1-00:00:00) \
+	sbatch $(shell $(call get_job_dependencies,vgnoscaf$(OKMAX))) $(call get_sbatch_job_par,minimus2vnoscaf,-p node -t 1-00:00:00,$(@D)) \
 		"$(MINIMUS2_RULE)"
 else
 	$(MINIMUS2_RULE)
 endif
 $(MINIMUS2_OUT_METAVELVET_NOSCAF)/all-merged.fasta : $(METAVELVETG_OUT_NOSCAF)
 ifeq ($(USE_SBATCH),yes)
-	sbatch $(shell $(call get_job_dependencies,mvgnoscaf$(OKMAX))) $(call get_sbatch_job_par,minimus2mvnoscaf,-p node -t 1-00:00:00) \
+	sbatch $(shell $(call get_job_dependencies,mvgnoscaf$(OKMAX))) $(call get_sbatch_job_par,minimus2mvnoscaf,-p node -t 1-00:00:00,$(@D)) \
 		"$(MINIMUS2_RULE)"
 else
 	$(MINIMUS2_RULE)
 endif
+################################
+# --------- /minimus2  ------- #
+################################
 
-# Newbler
+################################
+# --------- newbler -----------#
+################################
 NEWBLER_OUT_VELVET_NOSCAF=$(VELVET_OUT_NOSCAF)/newbler
 NEWBLER_OUT_METAVELVET_NOSCAF=$(METAVELVET_OUT_NOSCAF)/newbler
 # Newbler rule merges all given prerequisite files
@@ -189,19 +235,25 @@ NEWBLER_RULE=\
     rm $(@D)/velvet-noscaf-cut-up.fasta
 $(NEWBLER_OUT_VELVET_NOSCAF)/454AllContigs.fna: $(VELVETG_OUT_NOSCAF)
 ifeq ($(USE_SBATCH),yes)
-	sbatch $(shell $(call get_job_dependencies,vgnoscaf$(OKMAX))) $(call get_sbatch_job_par,newblervnoscaf,-p node -t 1-00:00:00) \
+	sbatch $(shell $(call get_job_dependencies,vgnoscaf$(OKMAX))) $(call get_sbatch_job_par,newblervnoscaf,-p node -t 1-00:00:00,$(@D)) \
 		"$(NEWBLER_RULE)"
 else
 	$(NEWBLER_RULE)
 endif
 $(NEWBLER_OUT_METAVELVET_NOSCAF)/454AllContigs.fna: $(METAVELVETG_OUT_NOSCAF)
 ifeq ($(USE_SBATCH),yes)
-	sbatch $(shell $(call get_job_dependencies,mvgnoscaf$(OKMAX))) $(call get_sbatch_job_par,newblermvnoscaf,-p node -t 1-00:00:00) \
+	sbatch $(shell $(call get_job_dependencies,mvgnoscaf$(OKMAX))) $(call get_sbatch_job_par,newblermvnoscaf,-p node -t 1-00:00:00,$(@D)) \
 		"$(NEWBLER_RULE)"
 else
 	$(NEWBLER_RULE)
 endif
+################################
+# -------- /newbler -----------#
+################################
 
+################################
+# --------- bambus2 -----------#
+################################
 # Bambus2
 BAMBUS2_RULE=\
 	mkdir -p $(@D); \
@@ -213,34 +265,70 @@ BAMBUS2_RULE=\
 	rm $(@D)/contigs_${FASTQBASE}-smds.bam; 
 %/bambus2/bambus2.scaffold.linear.fasta: %/all-merged.fasta
 ifeq ($(USE_SBATCH),yes)
-	sbatch $(call get_sbatch_job_par,bambus2minimus2,-p node -t 1-00:00:00) \
+	sbatch $(call get_sbatch_job_par,bambus2minimus2,-p node -t 1-00:00:00,$(@D)) \
 	"$(BAMBUS2_RULE)"
 else
 	$(BAMBUS2_RULE)
 endif
 %/bambus2/bambus2.scaffold.linear.fasta: %/contigs.fa
 ifeq ($(USE_SBATCH),yes)
-	sbatch $(call get_sbatch_job_par,bambus2vnoscaf,-p node -t 1-00:00:00) \
+	sbatch $(call get_sbatch_job_par,bambus2vnoscaf,-p node -t 1-00:00:00,$(@D)) \
 	"$(BAMBUS2_RULE)"
 else
 	$(BAMBUS2_RULE)
 endif
 %/bambus2/bambus2.scaffold.linear.fasta: %/454AllContigs.fna
 ifeq ($(USE_SBATCH),yes)
-	sbatch $(call get_sbatch_job_par,bambus2newbler,-p node -t 1-00:00:00) \
+	sbatch $(call get_sbatch_job_par,bambus2newbler,-p node -t 1-00:00:00,$(@D)) \
 	"$(BAMBUS2_RULE)"
 else
 	$(BAMBUS2_RULE)
 endif
 %/bambus2/bambus2.scaffold.linear.fasta: %/meta-velvetg.contigs.fa
 ifeq ($(USE_SBATCH),yes)
-	sbatch $(call get_sbatch_job_par,bambus2mvnoscaf,-p node -t 1-00:00:00) \
+	sbatch $(call get_sbatch_job_par,bambus2mvnoscaf,-p node -t 1-00:00:00,$(@D)) \
 	"$(BAMBUS2_RULE)"
 else
 	$(BAMBUS2_RULE)
 endif
+################################
+# -------- /bambus2 -----------#
+################################
+
+################################
+# ----------- ray -------------#
+################################
+RAY_OUT=$(ASM_OUT)/ray
+RAY_CONTIGS_OUT=$(shell echo $(RAY_OUT)/out_{$(KMIN)..$(KMAX)..$(STEPSIZE)}/Contigs.fasta)
+RAY_SCAFFOLDS_OUT=$(shell echo $(RAY_OUT)/out_{$(KMIN)..$(KMAX)..$(STEPSIZE)}/Scaffolds.fasta)
+# Loop iterates over single k
+ray_rule=\
+    rm -rf $(@D) $(@D).cp; \
+	module load openmpi; \
+    for k in $*; do \
+        outdir=$(@D); \
+        cpdir=$(@D).cp; \
+        echo "`date`: Running Ray with -k $$k, output in $$outdir, checkpoints in $$cpdir"; \
+        mpiexec Ray -k $$k -i $< -o $$outdir -show-memory-usage -write-checkpoints $$cpdir; \
+    done; \
+# Create symbolic link for pair, name must end on fastq for Ray
+$(RAY_OUT)/pair.fastq : $(PRC_READS_OUT)/$(FASTQBASE).qtrim
+	ln -fs $(shell readlink -f $<) $(RAY_OUT)/pair.fastq
+$(RAY_OUT)/out_%/Contigs.fasta : $(RAY_OUT)/pair.fastq
+ifeq ($(USE_SBATCH),yes)
+	sbatch $(shell $(call get_job_dependencies,qtrim)) $(call get_sbatch_job_par,ray$*,-p node -t 02:00:00,$(RAY_OUT)/) \
+		"$(call ray_rule)"
+else
+	$(call ray_rule)
+endif
+################################
+# ---------- /ray -------------#
+################################
 	
 
+################################
+# contig & scaffold filenames  #
+################################
 # A list of the full paths of all the contigs that can be assembled
 ALLASMCONTIGS=$(VELVETG_OUT_NOSCAF) \
 			  $(METAVELVETG_OUT_NOSCAF) \
@@ -254,12 +342,19 @@ ALLASMSCAFFOLDS=$(VELVETG_OUT_SCAF) $(METAVELVETG_OUT_SCAF) $(BAMBUS2SCAFFOLDS)
 # contigs someplace else
 echoexisting:
 	@echo $(wildcard $(ALLASMCONTIGS) $(ALLASMSCAFFOLDS))
+################################
+# /contig & scaffold filenames #
+################################
 
-# Assemblies
-all: qtrim velvet metavelvet minimus2 newbler
+################################
+#    Rules to make assemblies  #
+################################
+all: qtrim velvet metavelvet minimus2 newbler ray
 qtrim: $(PRC_READS_OUT)/$(FASTQBASE).qtrim
 velvet: $(VELVETG_OUT_NOSCAF) $(VELVETG_OUT_SCAF)
 metavelvet: $(METAVELVETG_OUT_NOSCAF) $(METAVELVETG_OUT_SCAF)
+# ray also creates $(RAY_SCAFFOLDS_OUT) automatically
+ray: $(RAY_CONTIGS_OUT)
 
 minimus2: minimus2velvet minimus2metavelvet
 minimus2velvet: $(MINIMUS2_OUT_VELVET_NOSCAF)/all-merged.fasta
@@ -271,6 +366,13 @@ newblermetavelvet: $(NEWBLER_OUT_METAVELVET_NOSCAF)/454AllContigs.fna
 
 bambus2: $(BAMBUS2SCAFFOLDS)
 
+################################
+#   /Rules to make assemblies  #
+################################
+
+################################
+#  Rules to delete assemblies  #
+################################
 # Remove output, often one is only interested in keeping the assemblies, make keepcontigsonly allows you to do that
 keepcontigsonly:
 	-find $(ASM_OUT)/* -type f | grep -v $(foreach contigs,$(wildcard $(ALLASMCONTIGS)),-e $(contigs)) -e $(VELVET_OUT_NOSCAF)/noscaf_$(OKMAX)/Sequences -e slurm | xargs rm
@@ -294,7 +396,10 @@ cleannewbler:
 	-rm -rf $(NEWBLER_OUT_METAVELVET_NOSCAF) $(NEWBLER_OUT_VELVET_NOSCAF)
 cleanpurity:
 	-find $(ASM_OUT)/* -type f -name purity-length-hist.tab | xargs rm
+################################
+# /Rules to delete assemblies  #
+################################
 
-.PHONY: all qtrim velvet metavelvet minimus2 minimus2velvet minimus2metavelvet newbler newblervelvet newblermetavelvet cleanall cleanasm cleanvelvetg cleanvelvet cleanmetavelvet cleanmetavelvetg cleanqtrim cleanminimus2 cleannewbler validateexisting keepcontigsonly echoexisting
+.PHONY: all qtrim velvet metavelvet minimus2 minimus2velvet minimus2metavelvet newbler newblervelvet newblermetavelvet cleanall cleanasm cleanvelvetg cleanvelvet cleanmetavelvet cleanmetavelvetg cleanqtrim cleanminimus2 cleannewbler validateexisting keepcontigsonly echoexisting ray
 # Takes quite some time to compute some of these, so you might want to decide yourself when to delete them by using make keepcontigsonly for instance.
 .PRECIOUS: $(VELVETH_OUT_SEQ) $(PRC_READS_OUT)/$(FASTQBASE).qtrim
