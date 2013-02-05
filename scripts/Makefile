@@ -300,27 +300,26 @@ endif
 ################################
 RAY_OUT=$(ASM_OUT)/ray
 RAY_CONTIGS_OUT=$(shell echo $(RAY_OUT)/out_{$(KMIN)..$(KMAX)..$(STEPSIZE)}/Contigs.fasta)
-RAY_SCAFFOLDS_OUT=$(shell echo $(RAY_OUT)/out_{$(KMIN)..$(KMAX)..$(STEPSIZE)}/Scaffolds.fasta)
+RAY_SCAFFOLDS_OUT=$(shell echo $(RAY_OUT)/out_{$(KMIN)..$(KMAX)..$(STEPSIZE)}/scaf/Scaffolds.fasta)
 # Loop iterates over single k
 ray_rule=\
     rm -rf $(@D) $(@D).cp; \
 	module load openmpi; \
-    for k in $*; do \
-        outdir=$(@D); \
-        cpdir=$(@D).cp; \
-        echo "`date`: Running Ray with -k $$k, output in $$outdir, checkpoints in $$cpdir"; \
-        mpiexec Ray -k $$k -i $< -o $$outdir -show-memory-usage -write-checkpoints $$cpdir; \
-    done; \
+	mpiexec Ray -k $* -i $< -o $(@D) -show-memory-usage -write-checkpoints $(@D).cp
 # Create symbolic link for pair, name must end on fastq for Ray
 $(RAY_OUT)/pair.fastq : $(PRC_READS_OUT)/$(FASTQBASE).qtrim
-	ln -fs $(shell readlink -f $<) $(RAY_OUT)/pair.fastq
+	ln -fs $(shell readlink -f $<) $@
 $(RAY_OUT)/out_%/Contigs.fasta : $(RAY_OUT)/pair.fastq
 ifeq ($(USE_SBATCH),yes)
-	sbatch $(shell $(call get_job_dependencies,qtrim)) $(call get_sbatch_job_par,ray$*,-p node -t 02:00:00,$(RAY_OUT)/) \
+	sbatch $(shell $(call get_job_dependencies,qtrim)) $(call get_sbatch_job_par,ray$*,-p node -t 12:00:00,$(RAY_OUT)/) \
 		"$(call ray_rule)"
 else
 	$(call ray_rule)
 endif
+# Create links to the scaffold in a sub directory so validation is easier i.e. all output in a different folder
+$(RAY_OUT)/out_%/scaf/Scaffolds.fasta : $(RAY_OUT)/out_%/Scaffolds.fasta
+	mkdir -p $(@D)
+	ln -fs $(shell readlink -f $<) $@
 ################################
 # ---------- /ray -------------#
 ################################
@@ -335,9 +334,10 @@ ALLASMCONTIGS=$(VELVETG_OUT_NOSCAF) \
 			  $(MINIMUS2_OUT_VELVET_NOSCAF)/all-merged.fasta \
 			  $(MINIMUS2_OUT_METAVELVET_NOSCAF)/all-merged.fasta \
 			  $(NEWBLER_OUT_VELVET_NOSCAF)/454AllContigs.fna \
-			  $(NEWBLER_OUT_METAVELVET_NOSCAF)/454AllContigs.fna
+			  $(NEWBLER_OUT_METAVELVET_NOSCAF)/454AllContigs.fna \
+			  $(RAY_CONTIGS_OUT)
 BAMBUS2SCAFFOLDS=$(foreach contigs, $(ALLASMCONTIGS), $(dir $(contigs))bambus2/bambus2.scaffold.linear.fasta)
-ALLASMSCAFFOLDS=$(VELVETG_OUT_SCAF) $(METAVELVETG_OUT_SCAF) $(BAMBUS2SCAFFOLDS)
+ALLASMSCAFFOLDS=$(VELVETG_OUT_SCAF) $(METAVELVETG_OUT_SCAF) $(BAMBUS2SCAFFOLDS) $(RAY_SCAFFOLDS_OUT)
 # Prints the full the paths of the assemblies files to stdout, useful e.g. if one wants to only copy
 # contigs someplace else
 echoexisting:
@@ -353,8 +353,10 @@ all: qtrim velvet metavelvet minimus2 newbler ray
 qtrim: $(PRC_READS_OUT)/$(FASTQBASE).qtrim
 velvet: $(VELVETG_OUT_NOSCAF) $(VELVETG_OUT_SCAF)
 metavelvet: $(METAVELVETG_OUT_NOSCAF) $(METAVELVETG_OUT_SCAF)
-# ray also creates $(RAY_SCAFFOLDS_OUT) automatically
 ray: $(RAY_CONTIGS_OUT)
+# The ray scaffolds are created automatically with ray, rayscaf just creates a
+# symbolic link in a subdir so validation is easier (all output in its own dir)
+rayscaf: $(RAY_SCAFFOLDS_OUT)
 
 minimus2: minimus2velvet minimus2metavelvet
 minimus2velvet: $(MINIMUS2_OUT_VELVET_NOSCAF)/all-merged.fasta
