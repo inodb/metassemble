@@ -24,7 +24,7 @@ allocations on our computing facility.  With a little tweaking the code can be
 used on another system that uses sbatch (adjust the partition names and the
 account used to schedule the job). The pipeline also works out of the box
 without sbatch but do note that running all the assemblies can take a very long
-time in that case so please specify the number of jobs with 'make -n' to gain
+time in that case so please specify the number of jobs with 'make -j' to gain
 some speed-up.
 
 2. Dependencies
@@ -312,5 +312,5 @@ ma-out/assemblies/metavelvet/noscaf/noscaf_81/bambus2/bambus2.scaffold.linear.fa
 ma-out/assemblies/metavelvet/noscaf/noscaf_83/bambus2/bambus2.scaffold.linear.fasta
 ma-out/assemblies/velvet/noscaf/minimus2/bambus2/bambus2.scaffold.linear.fasta
 ma-out/assemblies/metavelvet/noscaf/minimus2/bambus2/bambus2.scaffold.linear.fasta
-MA-out/assemblies/velvet/noscaf/newbler/bambus2/bambus2.scaffold.linear.fasta
+ma-out/assemblies/velvet/noscaf/newbler/bambus2/bambus2.scaffold.linear.fasta
 ma-out/assemblies/metavelvet/noscaf/newbler/bambus2/bambus2.scaffold.linear.fasta
