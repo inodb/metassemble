@@ -17,96 +17,31 @@ RUNNUCMERRULE=$(call get_sbatch_job_par,nucmer,-p node -t 02:00:00) \
 	    "mkdir -p $(@D); \
 		    bash $(SCRIPTDIR)/validate/nucmer/run-nucmer.sh $(REF) $< $(@D)/nucmer"
 %minimus2/val/nucmer.coords: %minimus2/all-merged.fasta $(REF)
-	sbatch $(shell $(call get_job_dependencies,minimus2vnoscaf,minimus2mvnoscaf)) \
-	$(RUNNUCMERRULE)
+	sbatch $(RUNNUCMERRULE)
 %newbler/val/nucmer.coords: %newbler/454AllContigs.fna $(REF)
-	sbatch $(shell $(call get_job_dependencies,newblervnoscaf,newblermvnoscaf)) \
-	$(RUNNUCMERRULE)
+	sbatch $(RUNNUCMERRULE)
 %bambus2/val/nucmer.coords: %bambus2/bambus2.scaffold.linear.fasta $(REF)
-	sbatch $(shell $(call get_job_dependencies,bambus2minimus2,bambus2vnoscaf,bambus2newbler,bambus2mvnoscaf)) \
-	$(RUNNUCMERRULE)
+	sbatch $(RUNNUCMERRULE)
 %/val/nucmer.coords: %/contigs.fa $(REF)
-	sbatch $(shell $(call get_job_dependencies,vgnoscaf$(OKMAX),vgscaf$(OKMAX))) \
-	$(RUNNUCMERRULE)
+	sbatch $(RUNNUCMERRULE)
 %/val/nucmer.coords: %/meta-velvetg.contigs.fa $(REF)
-	sbatch $(shell $(call get_job_dependencies,mvgnoscaf$(OKMAX),mvgscaf$(OKMAX))) \
-	$(RUNNUCMERRULE)
-
-# Validate assemblies, calculate stats and plot.
-# For the calc stats rule, all parameters are the same except for the location
-# of the contigs and the parameters to the awk script
-define calc_stats_asm_rule
-	sbatch $(shell $(call get_job_dependencies,nucmer)) \
-		$(call get_sbatch_job_par,calc-stats,-p core -t 02:00:00) \
-		"bash $(SCRIPTDIR)/process-reads/flatten-fasta.sh $1 \
-			| gawk $2 -v name=$1 \
-			-v contig_out=$(dir $@)contig-purity-length.tab \
-			-f $(SCRIPTDIR)/validate/nucmer/stats/purity.awk - $< > $(dir $@)purity; \
-		Rscript $(SCRIPTDIR)/validate/nucmer/stats/pergenome-perassembly.R \
-			$1 $(OUT)/reference-stats/ref.stats $< $(dir $@)"
-endef
-
-# Bambus2
-$(VELVET_OUT_NOSCAF)/noscaf_%/bambus2/val/purity-length-hist.tab: $(VELVET_OUT_NOSCAF)/noscaf_%/bambus2/val/nucmer.coords $(OUT)/reference-stats/ref.stats
-	$(call calc_stats_asm_rule,$(VELVET_OUT_NOSCAF)/noscaf_$*/bambus2/bambus2.scaffold.linear.fasta,-v asm_type=bambus2velvetnoscaf -v kmer_size=$* -v kmer_type=single)
-$(METAVELVET_OUT_NOSCAF)/noscaf_%/bambus2/val/purity-length-hist.tab: $(METAVELVET_OUT_NOSCAF)/noscaf_%/bambus2/val/nucmer.coords $(OUT)/reference-stats/ref.stats
-	$(call calc_stats_asm_rule,$(METAVELVET_OUT_NOSCAF)/noscaf_$*/bambus2/bambus2.scaffold.linear.fasta,-v asm_type=bambus2metavelvetnoscaf -v kmer_size=$* -v kmer_type=single)
-$(MINIMUS2_OUT_VELVET_NOSCAF)/bambus2/val/purity-length-hist.tab: $(MINIMUS2_OUT_VELVET_NOSCAF)/bambus2/val/nucmer.coords $(OUT)/reference-stats/ref.stats
-	$(call calc_stats_asm_rule,$(MINIMUS2_OUT_VELVET_NOSCAF)/bambus2/bambus2.scaffold.linear.fasta,-v asm_type=bambus2minimus2velvetnoscaf -v kmin=$(KMIN) -v kmax=$(OKMAX) -v kmer_type=multiple)
-$(MINIMUS2_OUT_METAVELVET_NOSCAF)/bambus2/val/purity-length-hist.tab: $(MINIMUS2_OUT_METAVELVET_NOSCAF)/bambus2/val/nucmer.coords $(OUT)/reference-stats/ref.stats
-	$(call calc_stats_asm_rule,$(MINIMUS2_OUT_METAVELVET_NOSCAF)/bambus2/bambus2.scaffold.linear.fasta,-v asm_type=bambus2minimus2metavelvetnoscaf -v kmin=$(KMIN) -v kmax=$(OKMAX) -v kmer_type=multiple)
-$(NEWBLER_OUT_VELVET_NOSCAF)/bambus2/val/purity-length-hist.tab: $(NEWBLER_OUT_VELVET_NOSCAF)/bambus2/val/nucmer.coords $(OUT)/reference-stats/ref.stats
-	$(call calc_stats_asm_rule,$(NEWBLER_OUT_VELVET_NOSCAF)/bambus2/bambus2.scaffold.linear.fasta,-v asm_type=bambus2newblervelvetnoscaf -v kmin=$(KMIN) -v kmax=$(OKMAX) -v kmer_type=multiple)
-$(NEWBLER_OUT_METAVELVET_NOSCAF)/bambus2/val/purity-length-hist.tab: $(NEWBLER_OUT_METAVELVET_NOSCAF)/bambus2/val/nucmer.coords $(OUT)/reference-stats/ref.stats
-	$(call calc_stats_asm_rule,$(NEWBLER_OUT_METAVELVET_NOSCAF)/bambus2/bambus2.scaffold.linear.fasta,-v asm_type=bambus2newblermetavelvetnoscaf -v kmin=$(KMIN) -v kmax=$(OKMAX) -v kmer_type=multiple)
-
-$(VELVET_OUT_NOSCAF)/noscaf_%/val/purity-length-hist.tab: $(VELVET_OUT_NOSCAF)/noscaf_%/val/nucmer.coords $(OUT)/reference-stats/ref.stats
-	$(call calc_stats_asm_rule,$(VELVET_OUT_NOSCAF)/noscaf_$*/contigs.fa,-v asm_type=velvetnoscaf -v kmer_size=$* -v kmer_type=single)
-$(VELVET_OUT_SCAF)/scaf_%/val/purity-length-hist.tab: $(VELVET_OUT_SCAF)/scaf_%/val/nucmer.coords $(OUT)/reference-stats/ref.stats
-	$(call calc_stats_asm_rule,$(VELVET_OUT_SCAF)/scaf_$*/contigs.fa,-v asm_type=velvetscaf -v kmer_size=$* -v kmer_type=single)
-$(METAVELVET_OUT_NOSCAF)/noscaf_%/val/purity-length-hist.tab: $(METAVELVET_OUT_NOSCAF)/noscaf_%/val/nucmer.coords $(OUT)/reference-stats/ref.stats
-	$(call calc_stats_asm_rule,$(METAVELVET_OUT_NOSCAF)/noscaf_$*/meta-velvetg.contigs.fa,-v asm_type=metavelvetnoscaf -v kmer_size=$* -v kmer_type=single)
-$(METAVELVET_OUT_SCAF)/scaf_%/val/purity-length-hist.tab: $(METAVELVET_OUT_SCAF)/scaf_%/val/nucmer.coords $(OUT)/reference-stats/ref.stats
-	$(call calc_stats_asm_rule,$(METAVELVET_OUT_SCAF)/scaf_$*/meta-velvetg.contigs.fa,-v asm_type=metavelvetscaf -v kmer_size=$* -v kmer_type=single)
-$(MINIMUS2_OUT_VELVET_NOSCAF)/val/purity-length-hist.tab: $(MINIMUS2_OUT_VELVET_NOSCAF)/val/nucmer.coords $(OUT)/reference-stats/ref.stats
-	$(call calc_stats_asm_rule,$(MINIMUS2_OUT_VELVET_NOSCAF)/all-merged.fasta,-v asm_type=minimus2velvetnoscaf -v kmin=$(KMIN) -v kmax=$(OKMAX) -v kmer_type=multiple)
-$(MINIMUS2_OUT_METAVELVET_NOSCAF)/val/purity-length-hist.tab: $(MINIMUS2_OUT_METAVELVET_NOSCAF)/val/nucmer.coords $(OUT)/reference-stats/ref.stats
-	$(call calc_stats_asm_rule,$(MINIMUS2_OUT_METAVELVET_NOSCAF)/all-merged.fasta,-v asm_type=minimus2metavelvetnoscaf -v kmin=$(KMIN) -v kmax=$(OKMAX) -v kmer_type=multiple)
-$(NEWBLER_OUT_VELVET_NOSCAF)/val/purity-length-hist.tab: $(NEWBLER_OUT_VELVET_NOSCAF)/val/nucmer.coords $(OUT)/reference-stats/ref.stats
-	$(call calc_stats_asm_rule,$(NEWBLER_OUT_VELVET_NOSCAF)/454AllContigs.fna,-v asm_type=newblervelvetnoscaf -v kmin=$(KMIN) -v kmax=$(OKMAX) -v kmer_type=multiple)
-$(NEWBLER_OUT_METAVELVET_NOSCAF)/val/purity-length-hist.tab: $(NEWBLER_OUT_METAVELVET_NOSCAF)/val/nucmer.coords $(OUT)/reference-stats/ref.stats
-	$(call calc_stats_asm_rule,$(NEWBLER_OUT_METAVELVET_NOSCAF)/454AllContigs.fna,-v asm_type=newblermetavelvetnoscaf -v kmin=$(KMIN) -v kmax=$(OKMAX) -v kmer_type=multiple)
+	sbatch $(RUNNUCMERRULE)
+%/valscaf/nucmer.coords: %/Scaffolds.fasta $(REF)
+	sbatch $(RUNNUCMERRULE)
+%/val/nucmer.coords: %/Contigs.fasta $(REF)
+	sbatch $(RUNNUCMERRULE)
 
 # Only validate existing, often something goes wrong in the assembly process so
 # this allows you to only validate those assemblies that succeeded in case one
 # is not able to get the other assemblies to complete.
+.PHONY:
 validateexisting: \
-	$(subst contigs.fa,val/purity-length-hist.tab,\
-	$(subst 454AllContigs.fna,val/purity-length-hist.tab,\
-	$(subst all-merged.fasta,val/purity-length-hist.tab,\
-	$(subst meta-velvetg.contigs.fa,val/purity-length-hist.tab,$(wildcard $(ALLASMCONTIGS) $(ALLASMSCAFFOLDS)))))) \
-	$(subst bambus2.scaffold.linear.fasta,val/purity-length-hist.tab,$(wildcard $(BAMBUS2SCAFFOLDS)))
-# Make a combined plot of Purity against L50 for all assemblies
-plotcombined:
-	mkdir -p $(ASM_OUT)/val
-	find $(ASM_OUT) -name purity | grep -ve $(ASM_OUT)/val/purity | \
-		xargs awk '{ \
-			if (FNR == 1 && NR == 1) {  \
-				print $$0; \
-			} \
-			if (FNR == 2) { \
-				if ($$14 == "multiple") { \
-					$$15=$$17; \
-					print $$0; \
-				} else { \
-					print $$0; \
-				} \
-			} \
-		}' > $(ASM_OUT)/val/purity
-	Rscript $(SCRIPTDIR)/validate/nucmer/plot/purity-L50.R --gradient-color-column kmer_size --title $(FASTQBASE) $(ASM_OUT)/val/l50-purity-$(FASTQBASE).pdf $(ASM_OUT)/val/purity
+	$(subst bambus2.scaffold.linear.fasta,val/nucmer.coords,\
+	$(subst Contigs.fasta,val/nucmer.coords,\
+	$(subst Scaffolds.fasta,valscaf/nucmer.coords,\
+	$(subst contigs.fa,val/nucmer.coords,\
+	$(subst 454AllContigs.fna,val/nucmer.coords,\
+	$(subst all-merged.fasta,val/nucmer.coords,\
+	$(subst meta-velvetg.contigs.fa,val/nucmer.coords,$(wildcard $(ALLASMCONTIGS) $(ALLASMSCAFFOLDS)))))))))
 
-keepcontigsandvalidationonly:
-	-find $(ASM_OUT)/* -type f | grep -v $(foreach contigs,$(wildcard $(ALLASMCONTIGS)),-e $(contigs)) -e $(VELVET_OUT_NOSCAF)/noscaf_$(OKMAX)/Sequences -e slurm -e val | xargs rm
-
-.PHONY: plotcombined validateexisting keepcontigsandvalidationonly
-.PRECIOUS: %minimus2/val/nucmer.coords %newbler/val/nucmer.coords %bambus2/val/nucmer.coords
+.PRECIOUS: %minimus2/val/nucmer.coords %newbler/val/nucmer.coords %bambus2/val/nucmer.coords %/val/nucmer.coords

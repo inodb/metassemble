@@ -120,6 +120,8 @@ ifeq ($(USE_SBATCH),yes)
 else
 	$(VELVETH_RULE)
 endif
+# TODO: This somehow doesn't really seem to work, maybe make symbolic links to
+# Sequences by yourself instead of through velveth.
 $(VELVETH_OUT)/velveth_%/Sequences : $(VELVETH_OUT_SIGNAL_FILE)
 ################################
 # --------- /velveth --------- #
