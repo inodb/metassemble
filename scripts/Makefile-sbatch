@@ -1,13 +1,10 @@
-include /gulo/glob/inod/github/gnu-make-sbatch-tools/sbatch.mk
+include /gulo/glob/inod/github/metassemble/lib/sbatch.mk
 include /gulo/glob/inod/github/metassemble/scripts/parameters.mk
 
 PROJECT:=b2010008
-NAME:=ino.debruijn
-EXT:=se
-DOMAIN:=scilifelab.$(EXT)
-EMAIL:=$(NAME)@$(DOMAIN)
 
-SBATCH_STD_OPT=-A $(PROJECT) --output=$@-slurm-%j.out -J $@
+SBATCH_STD_OPT=-A $(PROJECT) --output=$@-slurm-%j.out -J $@ $(shell mkdir -p $(@D))
+# mkdir for output file of slurm in case it doesn't exist
 
 ################################
 # ----- general rules -------- #
@@ -21,7 +18,7 @@ SBATCH_STD_OPT=-A $(PROJECT) --output=$@-slurm-%j.out -J $@
 ################################
 # ------ quality trim -------- #
 ################################
-$(PRC_READS_OUT)/$(FASTQBASE).qtrim: $(FASTQ1) $(FASTQ2)
+$(FASTQ_TRIM_IL): $(FASTQ1) $(FASTQ2)
 	$(call schedule_with_deps_and_store_id,$(SBATCH_STD_OPT) -t 06:00:00 -p core,make -e $@)
 ################################
 # ------ /quality trim ------- #
@@ -30,7 +27,7 @@ $(PRC_READS_OUT)/$(FASTQBASE).qtrim: $(FASTQ1) $(FASTQ2)
 ################################
 # ---------- velveth --------- #
 ################################
-$(VELVETH_OUT)/velveth_$(KMIN)/Sequences: $(PRC_READS_OUT)/$(FASTQBASE).qtrim
+$(VELVETH_OUT)/velveth_$(KMIN)/Sequences: $(FASTQ_TRIM_IL)
 	$(call schedule_with_deps_and_store_id,$(SBATCH_STD_OPT) -t 01-00:00:00 -p node,make -e $@)
 $(VELVETH_OUT)/velveth_%/Roadmaps: $(VELVETH_OUT)/velveth_$(KMIN)/Sequences
 	$(call schedule_with_deps_and_store_id,$(SBATCH_STD_OPT) -t 01-00:00:00 -p node,make -e $@)
@@ -41,9 +38,9 @@ $(VELVETH_OUT)/velveth_%/Roadmaps: $(VELVETH_OUT)/velveth_$(KMIN)/Sequences
 ################################
 # --------- velvetg ---------- #
 ################################
-$(VELVET_OUT_NOSCAF)/noscaf_%/contigs.fa: $(VELVETH_OUT)/velveth_%/Roadmaps
+$(VELVET_OUT_NOSCAF)/noscaf_%/$(CONTIG_FILENAME): $(VELVETH_OUT)/velveth_%/Roadmaps
 	$(call schedule_with_deps_and_store_id,$(SBATCH_STD_OPT) -t 02:00:00 -p node,make -e $@)
-$(VELVET_OUT_SCAF)/scaf_%/contigs.fa: $(VELVETH_OUT)/velveth_%/Roadmaps
+$(VELVET_OUT_SCAF)/scaf_%/$(SCAF_FILENAME): $(VELVETH_OUT)/velveth_%/Roadmaps
 	$(call schedule_with_deps_and_store_id,$(SBATCH_STD_OPT) -t 02:00:00 -p node,make -e $@)
 ################################
 # --------- /velvetg --------- #
@@ -52,9 +49,9 @@ $(VELVET_OUT_SCAF)/scaf_%/contigs.fa: $(VELVETH_OUT)/velveth_%/Roadmaps
 ################################
 # ------- meta-velvetg ------- #
 ################################
-$(METAVELVET_OUT_NOSCAF)/noscaf_%/meta-velvetg.contigs.fa: $(VELVETH_OUT)/velveth_%/Roadmaps
+$(METAVELVET_OUT_NOSCAF)/noscaf_%/$(CONTIG_FILENAME): $(VELVETH_OUT)/velveth_%/Roadmaps
 	$(call schedule_with_deps_and_store_id,$(SBATCH_STD_OPT) -t 02:00:00 -p node,make -e $@)
-$(METAVELVET_OUT_SCAF)/scaf_%/meta-velvetg.contigs.fa: $(VELVETH_OUT)/velveth_%/Roadmaps
+$(METAVELVET_OUT_SCAF)/scaf_%/$(SCAF_FILENAME): $(VELVETH_OUT)/velveth_%/Roadmaps
 	$(call schedule_with_deps_and_store_id,$(SBATCH_STD_OPT) -t 02:00:00 -p node,make -e $@)
 ################################
 # ------- /meta-velvetg ------ #
@@ -63,11 +60,11 @@ $(METAVELVET_OUT_SCAF)/scaf_%/meta-velvetg.contigs.fa: $(VELVETH_OUT)/velveth_%/
 ################################
 # --------- minimus2  -------- #
 ################################
-$(MINIMUS2_OUT_VELVET_NOSCAF)/all-merged.fasta: $(VELVETG_OUT_NOSCAF)
+$(MINIMUS2_OUT_VELVET_NOSCAF)/$(MERGE_FILENAME): $(VELVETG_OUT_NOSCAF)
 	$(call schedule_with_deps_and_store_id,$(SBATCH_STD_OPT) -t 01-00:00:00 -p node,make -e $@)
-$(MINIMUS2_OUT_METAVELVET_NOSCAF)/all-merged.fasta: $(METAVELVETG_OUT_NOSCAF)
+$(MINIMUS2_OUT_METAVELVET_NOSCAF)/$(MERGE_FILENAME): $(METAVELVETG_OUT_NOSCAF)
 	$(call schedule_with_deps_and_store_id,$(SBATCH_STD_OPT) -t 01-00:00:00 -p node,make -e $@)
-$(MINIMUS2_OUT_RAY_NOSCAF)/all-merged.fasta: $(RAY_CONTIGS_OUT)
+$(MINIMUS2_OUT_RAY_NOSCAF)/$(MERGE_FILENAME): $(RAY_CONTIGS_OUT)
 	$(call schedule_with_deps_and_store_id,$(SBATCH_STD_OPT) -t 01-00:00:00 -p node,make -e $@)
 ################################
 # --------- /minimus2  ------- #
@@ -76,11 +73,11 @@ $(MINIMUS2_OUT_RAY_NOSCAF)/all-merged.fasta: $(RAY_CONTIGS_OUT)
 ################################
 # --------- newbler -----------#
 ################################
-$(NEWBLER_OUT_VELVET_NOSCAF)/454AllContigs.fna: $(VELVETG_OUT_NOSCAF)
+$(NEWBLER_OUT_VELVET_NOSCAF)/$(MERGE_FILENAME): $(VELVETG_OUT_NOSCAF)
 	$(call schedule_with_deps_and_store_id,$(SBATCH_STD_OPT) -t 01-00:00:00 -p node,make -e $@)
-$(NEWBLER_OUT_METAVELVET_NOSCAF)/454AllContigs.fna: $(METAVELVETG_OUT_NOSCAF)
+$(NEWBLER_OUT_METAVELVET_NOSCAF)/$(MERGE_FILENAME): $(METAVELVETG_OUT_NOSCAF)
 	$(call schedule_with_deps_and_store_id,$(SBATCH_STD_OPT) -t 01-00:00:00 -p node,make -e $@)
-$(NEWBLER_OUT_RAY_NOSCAF)/454AllContigs.fna: $(RAY_CONTIGS_OUT)
+$(NEWBLER_OUT_RAY_NOSCAF)/$(MERGE_FILENAME): $(RAY_CONTIGS_OUT)
 	$(call schedule_with_deps_and_store_id,$(SBATCH_STD_OPT) -t 01-00:00:00 -p node,make -e $@)
 ################################
 # -------- /newbler -----------#
@@ -89,17 +86,8 @@ $(NEWBLER_OUT_RAY_NOSCAF)/454AllContigs.fna: $(RAY_CONTIGS_OUT)
 ################################
 # --------- bambus2 -----------#
 ################################
-%/bambus2/bambus2.scaffold.linear.fasta: %/all-merged.fasta
-	$(call schedule_with_deps_and_store_id,$(SBATCH_STD_OPT) -t 01-00:00:00 -p node,make -e $@)
-%/bambus2/bambus2.scaffold.linear.fasta: %/contigs.fa
-	$(call schedule_with_deps_and_store_id,$(SBATCH_STD_OPT) -t 01-00:00:00 -p node,make -e $@)
-%/bambus2/bambus2.scaffold.linear.fasta: %/454AllContigs.fna
-	$(call schedule_with_deps_and_store_id,$(SBATCH_STD_OPT) -t 01-00:00:00 -p node,make -e $@)
-%/bambus2/bambus2.scaffold.linear.fasta: %/meta-velvetg.contigs.fa
-	$(call schedule_with_deps_and_store_id,$(SBATCH_STD_OPT) -t 01-00:00:00 -p node,make -e $@)
-%/bambus2/bambus2.scaffold.linear.fasta: %/Contigs.fasta
-	$(call schedule_with_deps_and_store_id,$(SBATCH_STD_OPT) -t 01-00:00:00 -p node,make -e $@)
-%/bambus2/bambus2.scaffold.linear.fasta: %/ma-contigs.fasta
+%/bambus2/bambus2.scaffold.linear.fasta: %/$(MERGE_FILENAME)
+%/bambus2/bambus2.scaffold.linear.fasta: %/$(CONTIG_FILENAME)
 	$(call schedule_with_deps_and_store_id,$(SBATCH_STD_OPT) -t 01-00:00:00 -p node,make -e $@)
 ################################
 # -------- /bambus2 -----------#
@@ -108,9 +96,9 @@ $(NEWBLER_OUT_RAY_NOSCAF)/454AllContigs.fna: $(RAY_CONTIGS_OUT)
 ################################
 # ----------- ray -------------#
 ################################
-$(RAY_OUT)/noscaf/noscaf_%/ma-contigs.fasta: $(PRC_READS_OUT)/$(FASTQBASE).qtrim
+$(RAY_OUT)/noscaf/noscaf_%/$(CONTIG_FILENAME): $(FASTQ_TRIM_IL)
 	$(call schedule_with_deps_and_store_id,$(SBATCH_STD_OPT) -t 01-00:00:00 -p node,make -e $@)
-$(RAY_OUT)/scaf/scaf_%/ma-scaffolds.fasta: $(RAY_OUT)/noscaf/noscaf_%/ma-contigs.fasta
+$(RAY_OUT)/scaf/scaf_%/$(SCAF_FILENAME): $(RAY_OUT)/noscaf/noscaf_%/$(CONTIG_FILENAME)
 	$(call schedule_with_deps_and_store_id,$(SBATCH_STD_OPT) -t 00:05:00 --qos=short -p core,make -e $@)
 ################################
 # ---------- /ray -------------#

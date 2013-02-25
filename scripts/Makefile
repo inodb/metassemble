@@ -26,18 +26,18 @@ include /gulo/glob/inod/github/metassemble/scripts/parameters.mk
 # ------ quality trim -------- #
 ################################
 # qual-type 0 for Sanger quality (or illumina 1.8) type 2 for windowed trimming
-$(PRC_READS_OUT)/$(FASTQBASE).qtrim: $(FASTQ1) $(FASTQ2)
+$(FASTQ_TRIM_IL): $(FASTQ1) $(FASTQ2)
 	mkdir -p $(PRC_READS_OUT)
 	sickle pe \
 		-f $(FASTQ1) \
 		-r $(FASTQ2) \
 		-t sanger \
-		-o $(PRC_READS_OUT)/$(FASTQBASE).1.qtrim \
-		-p $(PRC_READS_OUT)/$(FASTQBASE).2.qtrim \
-		-s $(PRC_READS_OUT)/$(FASTQBASE).qtrim.unpaired
-	shuffleSequences_fastq.pl $(PRC_READS_OUT)/$(FASTQBASE).1.qtrim \
-		$(PRC_READS_OUT)/$(FASTQBASE).2.qtrim \
-		$(PRC_READS_OUT)/$(FASTQBASE).qtrim
+		-o $(FASTQ_TRIM_1) \
+		-p $(FASTQ_TRIM_2) \
+		-s $(FASTQ_TRIM_IL).unpaired
+	shuffleSequences_fastq.pl $(FASTQ_TRIM_1) \
+		$(FASTQ_TRIM_2) \
+		$@
 ################################
 # ------ /quality trim ------- #
 ################################
@@ -45,10 +45,10 @@ $(PRC_READS_OUT)/$(FASTQBASE).qtrim: $(FASTQ1) $(FASTQ2)
 ################################
 # ---------- velveth --------- #
 ################################
-$(VELVETH_OUT)/velveth_$(KMIN)/Sequences: $(PRC_READS_OUT)/$(FASTQBASE).qtrim
+$(VELVETH_OUT)/velveth_$(KMIN)/Sequences: $(FASTQ_TRIM_IL)
 	mkdir -p $(VELVETH_OUT)
 	velveth $(VELVETH_OUT)/velveth_$(KMIN) $(KMIN) -noHash -fastq \
-		-shortPaired $(PRC_READS_OUT)/$(FASTQBASE).qtrim
+		-shortPaired $<
 $(VELVETH_OUT)/velveth_%/Sequences: $(VELVETH_OUT)/velveth_$(KMIN)/Sequences
 	mkdir -p $(@D)
 	ln -fs $(abspath $<) $@
@@ -66,10 +66,11 @@ mkdir -p $(@D)
 ln -fs $(abspath $(lastword $^)) $(@D)/Sequences
 ln -fs $(abspath $<) $(@D)/Roadmaps
 velvetg $(@D) $1
+mv $(@D)/contigs.fa $@
 endef
-$(VELVET_OUT_NOSCAF)/noscaf_%/contigs.fa: $(VELVETH_OUT)/velveth_%/Roadmaps $(VELVETH_OUT)/velveth_%/Sequences
+$(VELVET_OUT_NOSCAF)/noscaf_%/$(CONTIG_FILENAME): $(VELVETH_OUT)/velveth_%/Roadmaps $(VELVETH_OUT)/velveth_%/Sequences
 	$(call velvetg_rule,-scaffolding no)
-$(VELVET_OUT_SCAF)/scaf_%/contigs.fa: $(VELVETH_OUT)/velveth_%/Roadmaps $(VELVETH_OUT)/velveth_%/Sequences
+$(VELVET_OUT_SCAF)/scaf_%/$(SCAF_FILENAME): $(VELVETH_OUT)/velveth_%/Roadmaps $(VELVETH_OUT)/velveth_%/Sequences
 	$(call velvetg_rule,-scaffolding yes -exp_cov auto)
 ################################
 # --------- /velvetg --------- #
@@ -81,14 +82,15 @@ $(VELVET_OUT_SCAF)/scaf_%/contigs.fa: $(VELVETH_OUT)/velveth_%/Roadmaps $(VELVET
 # Copy output from velveth and run velvetg, followed by meta-velvetg -scaffolding yes or no
 define metavelvetg_rule
 mkdir -p $(dir $@)
-ln -fs $(lastword $^) $(@D)/Sequences
-ln -fs $< $(@D)/Roadmaps
+ln -fs $(abspath $(lastword $^)) $(@D)/Sequences
+ln -fs $(abspath $<) $(@D)/Roadmaps
 velvetg $(dir $@) -scaffolding no -exp_cov auto -read_trkg yes \
 	&& meta-velvetg $(dir $@) $1
+mv $(@D)/meta-velvetg.contigs.fa $@
 endef
-$(METAVELVET_OUT_NOSCAF)/noscaf_%/meta-velvetg.contigs.fa: $(VELVETH_OUT)/velveth_%/Roadmaps $(VELVETH_OUT)/velveth_%/Sequences
+$(METAVELVET_OUT_NOSCAF)/noscaf_%/$(CONTIG_FILENAME): $(VELVETH_OUT)/velveth_%/Roadmaps $(VELVETH_OUT)/velveth_%/Sequences
 	$(call metavelvetg_rule,-scaffolding no)
-$(METAVELVET_OUT_SCAF)/scaf_%/meta-velvetg.contigs.fa: $(VELVETH_OUT)/velveth_%/Roadmaps $(VELVETH_OUT)/velveth_%/Sequences
+$(METAVELVET_OUT_SCAF)/scaf_%/$(SCAF_FILENAME): $(VELVETH_OUT)/velveth_%/Roadmaps $(VELVETH_OUT)/velveth_%/Sequences
 	$(call metavelvetg_rule,-scaffolding yes)
 ################################
 # ------- /meta-velvetg ------ #
@@ -101,12 +103,13 @@ $(METAVELVET_OUT_SCAF)/scaf_%/meta-velvetg.contigs.fa: $(VELVETH_OUT)/velveth_%/
 define MINIMUS2_RULE
 mkdir -p $(@D)
 bash $(SCRIPTDIR)/assembly/merge-asm-minimus2.sh $(@D) $^
+mv $(@D)/all-merged.fasta $@
 endef
-$(MINIMUS2_OUT_VELVET_NOSCAF)/all-merged.fasta: $(VELVETG_OUT_NOSCAF)
+$(MINIMUS2_OUT_VELVET_NOSCAF)/$(MERGE_FILENAME): $(VELVETG_OUT_NOSCAF)
 	$(MINIMUS2_RULE)
-$(MINIMUS2_OUT_METAVELVET_NOSCAF)/all-merged.fasta: $(METAVELVETG_OUT_NOSCAF)
+$(MINIMUS2_OUT_METAVELVET_NOSCAF)/$(MERGE_FILENAME): $(METAVELVETG_OUT_NOSCAF)
 	$(MINIMUS2_RULE)
-$(MINIMUS2_OUT_RAY_NOSCAF)/all-merged.fasta: $(RAY_CONTIGS_OUT)
+$(MINIMUS2_OUT_RAY_NOSCAF)/$(MERGE_FILENAME): $(RAY_CONTIGS_OUT)
 	$(MINIMUS2_RULE)
 ################################
 # --------- /minimus2  ------- #
@@ -121,12 +124,13 @@ mkdir -p $(@D)
 python $(SCRIPTDIR)/process-reads/cut-up-fasta.py $^ > $(@D)/velvet-noscaf-cut-up.fasta
 runAssembly -force -o $(@D) $(@D)/velvet-noscaf-cut-up.fasta
 rm $(@D)/velvet-noscaf-cut-up.fasta
+mv $(@D)/454AllContigs.fna $@
 endef
-$(NEWBLER_OUT_VELVET_NOSCAF)/454AllContigs.fna: $(VELVETG_OUT_NOSCAF)
+$(NEWBLER_OUT_VELVET_NOSCAF)/$(MERGE_FILENAME): $(VELVETG_OUT_NOSCAF)
 	$(NEWBLER_RULE)
-$(NEWBLER_OUT_METAVELVET_NOSCAF)/454AllContigs.fna: $(METAVELVETG_OUT_NOSCAF)
+$(NEWBLER_OUT_METAVELVET_NOSCAF)/$(MERGE_FILENAME): $(METAVELVETG_OUT_NOSCAF)
 	$(NEWBLER_RULE)
-$(NEWBLER_OUT_RAY_NOSCAF)/454AllContigs.fna: $(RAY_CONTIGS_OUT)
+$(NEWBLER_OUT_RAY_NOSCAF)/$(MERGE_FILENAME): $(RAY_CONTIGS_OUT)
 	$(NEWBLER_RULE)
 ################################
 # -------- /newbler -----------#
@@ -138,21 +142,15 @@ $(NEWBLER_OUT_RAY_NOSCAF)/454AllContigs.fna: $(RAY_CONTIGS_OUT)
 # Bambus2
 define BAMBUS2_RULE
 mkdir -p $(@D)
-bash $(SCRIPTDIR)/validate/map-bwa-markduplicates.sh $(FASTQ1) $(FASTQ2) \
+bash $(SCRIPTDIR)/validate/map-bwa-markduplicates.sh $(BAMBUS2_MAP_PARS) $(FASTQ_TRIM_1) $(FASTQ_TRIM_2) \
 	$(FASTQBASE) $< contigs $(@D)
 bash $(SCRIPTDIR)/assembly/scaf-asm-bambus2.sh \
 	$(@D)/contigs_${FASTQBASE}-smds.bam $< bambus2
 rm $(@D)/contigs_${FASTQBASE}-smds.bam
 endef
-%/bambus2/bambus2.scaffold.linear.fasta: %/all-merged.fasta
+%/bambus2/bambus2.scaffold.linear.fasta: %/$(MERGE_FILENAME)
 	$(BAMBUS2_RULE)
-%/bambus2/bambus2.scaffold.linear.fasta: %/contigs.fa
-	$(BAMBUS2_RULE)
-%/bambus2/bambus2.scaffold.linear.fasta: %/454AllContigs.fna
-	$(BAMBUS2_RULE)
-%/bambus2/bambus2.scaffold.linear.fasta: %/meta-velvetg.contigs.fa
-	$(BAMBUS2_RULE)
-%/bambus2/bambus2.scaffold.linear.fasta: %/ma-contigs.fasta
+%/bambus2/bambus2.scaffold.linear.fasta: %/$(CONTIG_FILENAME)
 	$(BAMBUS2_RULE)
 ################################
 # -------- /bambus2 -----------#
@@ -166,18 +164,18 @@ rm -rf $(@D) $(@D).cp
 mpiexec Ray -k $* -i $< -o $(@D) -show-memory-usage -write-checkpoints $(@D).cp
 endef
 # Create symbolic link for pair, name must end on fastq for Ray
-$(RAY_OUT)/pair.fastq: $(PRC_READS_OUT)/$(FASTQBASE).qtrim
+$(RAY_OUT)/pair.fastq: $(FASTQ_TRIM_IL)
 	mkdir -p $(@D)
 	ln -fs $(abspath $<) $@
 $(RAY_OUT)/out_%/Contigs.fasta: $(RAY_OUT)/pair.fastq
 	$(RAY_RULE)
-$(RAY_OUT)/noscaf/noscaf_%/ma-contigs.fasta: $(RAY_OUT)/out_%/Contigs.fasta
+$(RAY_OUT)/noscaf/noscaf_%/$(CONTIG_FILENAME): $(RAY_OUT)/out_%/Contigs.fasta
 	mkdir -p $(@D)
-	mv $(dir $<)Contigs.fasta $@
+	cp $(dir $<)Contigs.fasta $@
 # Create links to the scaffold in a sub directory so validation is easier i.e. all output in a different folder
-$(RAY_OUT)/scaf/scaf_%/ma-scaffolds.fasta: $(RAY_OUT)/out_%/Contigs.fasta
+$(RAY_OUT)/scaf/scaf_%/$(SCAF_FILENAME): $(RAY_OUT)/noscaf/noscaf_%/$(CONTIG_FILENAME)
 	mkdir -p $(@D)
-	mv $(dir $<)Scaffolds.fasta $@
+	mv $(RAY_OUT)/out_$*/Scaffolds.fasta $@
 ################################
 # ---------- /ray -------------#
 ################################
