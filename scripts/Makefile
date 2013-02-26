@@ -176,6 +176,7 @@ $(RAY_OUT)/noscaf/noscaf_%/$(CONTIG_FILENAME): $(RAY_OUT)/out_%/Contigs.fasta
 $(RAY_OUT)/scaf/scaf_%/$(SCAF_FILENAME): $(RAY_OUT)/noscaf/noscaf_%/$(CONTIG_FILENAME)
 	mkdir -p $(@D)
 	mv $(RAY_OUT)/out_$*/Scaffolds.fasta $@
+	touch $@
 ################################
 # ---------- /ray -------------#
 ################################
