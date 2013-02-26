@@ -2,6 +2,7 @@ MetAssemble
 ===========
 
 Content
+
 1. Overview
 2. Dependencies
 3. Installation
@@ -17,19 +18,17 @@ individual strategies, but can be used to perform the assembly strategies
 without validation as well. The pipeline is written in GNU make and not very
 user friendly for the average user, but if you are familiar with GNU make you
 shouldn't have too many troubles getting it to run. The only other metagenomics
-assembly pipeline that I am aware of is [metAMOS][1], which seems to be an
-effort towards a more user-friendly approach if you are looking for that. A
-reason for using MetAssemble instead is because it allows one to schedule parts
-of the assembly pipeline with sbatch. Different steps in the assembly pipeline
-require different resources. Velvet for instance runs on only one node, whereas
-Ray runs over multiple. MetAssemble allows you to specify resource usage per
-rule with [gnu-make-sbatch-tools][2]. Furthermore GNU make makes sure
-intermediate output files don't have to be recomputed in case of an error. In
-my experience every new sequence library results in a new funny error somewhere
-in one of the programs in the pipeline, so this is quite a useful feature.
+assembly pipeline that I am aware of is [metAMOS], which seems to be an effort
+towards a more user-friendly approach if you are looking for that. A reason for
+using MetAssemble instead is because it allows one to schedule parts of the
+assembly pipeline with sbatch. Different steps in the assembly pipeline require
+different resources. Velvet for instance runs on only one node, whereas Ray
+runs over multiple. MetAssemble allows you to specify resource usage per rule
+with [gnu-make-sbatch-tools]. Furthermore GNU make makes sure intermediate
+output files don't have to be recomputed in case of an error.
 
-[1]: https://github.com/treangen/metAMOS/
-[2]: https://github.com/inodb/gnu-make-sbatch-tools
+[metAMOS]: https://github.com/treangen/metAMOS/
+[gnu-make-sbatch-tools]: https://github.com/inodb/gnu-make-sbatch-tools
 
 2. Dependencies
 ===============
@@ -96,3 +95,29 @@ If you want to change the resource usage per rule, change Makefile-sbatch
 accordingly. In the future I might add automatic computation of the resource
 usage. For assembly this is unfortunately still a problem, since it depends on
 the complexity of your sample and not just the filesize.
+
+To see which assemblies have been created:
+
+    make echoexisting
+
+All assemblies, created or not:
+
+    make echoall
+
+To create all:
+
+    make all
+
+Only show commands:
+
+    make -n all
+
+Only make velvet:
+
+   make velvet
+
+Schedule rules with sbatch:
+
+   make -f Makefile-sbatch all
+
+For more rules check in the scripts/parameters.mk file.
