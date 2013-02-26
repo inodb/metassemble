@@ -35,7 +35,7 @@ output files don't have to be recomputed in case of an error.
 Dependencies need to be installed by oneself. There is no automated way to do this at the moment.
 One can however check if the dependencies are met by running
 
-`bash test/dependencies/test_dependencies.sh`
+    bash test/dependencies/test_dependencies.sh
 
 Do note that it is not necessary to install all programs if you only want to do
 a subset of the assemblies that MetAssemble covers. MetAssemble requires the
@@ -73,7 +73,6 @@ The Makefile features four steps of the metagenomic assembly pipeline:
 4. Scaffolding
     - Construct linkage information by mapping reads to contigs
         * [BWA](http://bio-bwa.sourceforge.net/)
-
     - Scaffold contigs
         * [Bambus2](http://sourceforge.net/apps/mediawiki/amos/index.php?title=Bambus2)
 
@@ -114,10 +113,10 @@ Only show commands:
 
 Only make velvet:
 
-   make velvet
+    make velvet
 
 Schedule rules with sbatch:
 
-   make -f Makefile-sbatch all
+    make -f Makefile-sbatch all
 
 For more rules check in the scripts/parameters.mk file.
