@@ -1,0 +1,36 @@
+SRS018585=letsgo 
+include data.mk
+
+include /gulo/glob/inod/github/metassemble/scripts/Makefile-sbatch
+
+$(OUT).qtrim.done: $(FASTQ_TRIM_IL)
+
+$(OUT).velvet.done: $(VELVETG_OUT_NOSCAF) $(VELVETG_OUT_SCAF)
+
+$(OUT).metavelvet.done: $(METAVELVETG_OUT_NOSCAF) $(METAVELVETG_OUT_SCAF)
+
+$(OUT).ray.done: $(RAY_CONTIGS_OUT) $(RAY_SCAFFOLDS_OUT)
+
+$(OUT).minimus2.done: $(MINIMUS2_OUT_VELVET_NOSCAF)/$(MERGE_FILENAME)
+
+$(OUT).newbler.done: $(NEWBLER_OUT_VELVET_NOSCAF)/$(MERGE_FILENAME)
+
+$(OUT).bambus2.done: $(foreach contigs, $(filter %$(KMAX)/contigs.fa,$(VELVETG_OUT_NOSCAF)), $(shell dirname $(contigs))/bambus2/bambus2.scaffold.linear.fasta)
+
+testqtrim: $(OUT).qtrim.done
+testvelvet: $(OUT).velvet.done
+testmetavelvet: $(OUT).metavelvet.done
+testminimus2: $(OUT).minimus2.done
+testnewbler: $(OUT).newbler.done
+testray: $(OUT).ray.done
+
+TESTDONEFILES=$(OUT).velvet.done $(OUT).metavelvet.done $(OUT).ray.done $(OUT).minimus2.done $(OUT).newbler.done $(OUT).bambus2.done
+# only add qtrim if qtrim is performed
+ifeq ($(DO_QTRIM),yes)
+$(TESTDONEFILES)=$(OUT).qtrim.done $(TESTDONEFILES)
+endif
+
+test: $(TESTDONEFILES)
+clean:
+	rm -f $(OUT).qtrim.done $(OUT).velvet.done $(OUT).metavelvet.done $(OUT).ray.done
+.PHONY: testqtrim testvelvet testmetavelvet testminimus2 testnewbler testray test clean

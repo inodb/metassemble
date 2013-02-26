@@ -1,9 +1,9 @@
 ################################
 # ------ input parameters ---- #
 ################################
-FASTQ1?=500pg_even_GGACTCCT-CTCTCTAT_L003_R1_001.fastq
-FASTQ2?=500pg_even_GGACTCCT-CTCTCTAT_L003_R2_001.fastq
-FASTQBASE?=500pg_even
+FASTQ1?=pair1.fastq
+FASTQ2?=pair2.fastq
+FASTQBASE?=pair
 SCRIPTDIR?=/bubo/home/h16/inod/glob/github/metassemble/scripts
 ################################
 # ----- /input parameters ---- #
@@ -25,12 +25,19 @@ MERGE_FILENAME?=ma-merge.fa
 ################################
 # ------ quality trim -------- #
 ################################
+DO_QTRIM?=yes
+FASTQ_TRIM_IL:=$(PRC_READS_OUT)/$(FASTQBASE).qtrim
+ifeq ($(DO_QTRIM),yes)
 FASTQ_TRIM_1:=$(PRC_READS_OUT)/$(FASTQBASE).1.qtrim
 FASTQ_TRIM_2:=$(PRC_READS_OUT)/$(FASTQBASE).2.qtrim
-FASTQ_TRIM_IL:=$(PRC_READS_OUT)/$(FASTQBASE).qtrim
+FASTQ_TRIM_UN:=$(FASTQ_TRIM_IL).unpaired
+else
+FASTQ_TRIM_1:=$(FASTQ1)
+FASTQ_TRIM_2:=$(FASTQ2)
+endif
 FASTQ_TRIM_OUT:=$(FASTQ_TRIM_1) \
                 $(FASTQ_TRIM_2) \
-                $(FASTQ_TRIM_IL).unpaired
+                $(FASTQ_TRIM_UN)
 ################################
 # ------ /quality trim ------- #
 ################################
@@ -127,8 +134,13 @@ ALLASMCONTIGS:=$(VELVETG_OUT_NOSCAF) \
 			  $(NEWBLER_OUT_MERGE) 
 BAMBUS2SCAFFOLDS=$(foreach contigs, $(ALLASMCONTIGS), $(shell dirname $(contigs))/bambus2/bambus2.scaffold.linear.fasta)
 ALLASMSCAFFOLDS=$(VELVETG_OUT_SCAF) $(METAVELVETG_OUT_SCAF) $(BAMBUS2SCAFFOLDS) $(RAY_SCAFFOLDS_OUT)
-# Prints the full the paths of the assemblies files to stdout, useful e.g. if one wants to only copy
-# contigs someplace else
+# Prints the full the paths of the assemblies files to stdout
+echoall:
+	@echo $(ALLASMCONTIGS) $(ALLASMSCAFFOLDS)
+echocontigs:
+	@echo $(ALLASMCONTIGS)
+echoscaffolds:
+	@echo $(ALLASMSCAFFOLDS)
 echoexisting:
 	@echo $(wildcard $(ALLASMCONTIGS) $(ALLASMSCAFFOLDS))
 ################################
@@ -138,7 +150,7 @@ echoexisting:
 ################################
 #    Rules to make assemblies  #
 ################################
-all: qtrim velvet metavelvet ray minimus2 newbler
+all: velvet metavelvet ray minimus2 newbler
 qtrim: $(FASTQ_TRIM_IL)
 velvet: $(VELVETG_OUT_NOSCAF) $(VELVETG_OUT_SCAF)
 metavelvet: $(METAVELVETG_OUT_NOSCAF) $(METAVELVETG_OUT_SCAF)

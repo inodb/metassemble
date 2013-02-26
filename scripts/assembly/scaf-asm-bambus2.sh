@@ -15,6 +15,8 @@ set -o nounset
 # From: http://tinyurl.com/85qrydz
 SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 source $SCRIPTDIR/../global-functions.incl
+COLJAR=$SCRIPTDIR/../../bin/picard-tools-1.77/CollectInsertSizeMetrics.jar
+CLEANJAR=$SCRIPTDIR/../../bin/picard-tools-1.77/CleanSam.jar
 
 # Default parameters
 RMTMPFILES=true
@@ -52,8 +54,6 @@ CONTIGS=$(readlink -f $2)
 OUTPUTPREFIX=$3
 CURDIR=`pwd`
 check_prog samtoafg goBambus2 bank-transact samtools
-COLJAR=/bubo/home/h16/inod/glob/downloaded_software/picard-tools-1.77/CollectInsertSizeMetrics.jar
-CLEANJAR=/bubo/home/h16/inod/glob/downloaded_software/picard-tools-1.77/CleanSam.jar
 if [ ! -e $COLJAR ]; then
     echo "$COLJAR doesn't exist" >&2
     exit 1

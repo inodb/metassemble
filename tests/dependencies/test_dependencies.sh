@@ -83,5 +83,14 @@ check_prog_verbose cd-hit-est "cd-hit-est missing from PATH, required for minimu
 check_prog_verbose toAmos "toAmos missing from PATH, required for minimus2 merging, download from http://sourceforge.net/apps/mediawiki/amos/index.php?title=AMOS"
 check_prog_verbose shuffleSequences_fastq.pl "shuffleSequences_fastq.pl missing from PATH, part of velvet, download from http://www.ebi.ac.uk/~zerbino/velvet"
 check_prog_verbose runAssembly "runAssembly missing from PATH, commercial software, required for Newbler merging (NOTE that runAssembly == Newbler)"
+# map-bwa-markduplicates.sh
+check_prog_verbose bwa "bwa missing from PATH map-bwa-markduplicates.sh"
+check_prog_verbose samtools "samtools missing from PATH required for map-bwa-markduplicates.sh"
+check_prog_verbose samtoafg "samtoafg missing from PATH required for map-bwa-markduplicates.sh"
+check_prog_verbose genomeCoverageBed "genomeCoverageBed from BEDTools missing from PATH, required for map-bwa-markduplicates.sh"
+# cut-up-fasta.py
 check_prog_python_verbose Bio "Bio module not found in python, required for scripts/process-reads/cut-up-fasta.py for Newbler merging, download from http://biopython.org/wiki/Main_Page"
+# scaf-asm-bambus2.sh
+check_prog_verbose goBambus2 "goBambus2 missing from PATH, required for scaf-asm-bambus2.sh"
+check_prog_verbose bank-transact "bank-transact from amos missing from PATH, required for scaf-asm-bambus2.sh"
 echo "All tests succeeded!!"

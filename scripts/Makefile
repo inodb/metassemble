@@ -1,17 +1,9 @@
 # MetAssemble Pipeline. This Makefile is NOT meant to build the scripts but to
-# run the metassemble scripts on an Illumina paired end library. Change input
-# parameters accordingly for each library, either in the file or pass as
-# argument. Currently only works with sbatch, that we use at our server. This
-# version includes proper scheduling of job dependencies except for bambus2. I
-# do those separately with 'make bambus2' after constructing the contigs
-# because I have not found time to implement that yet and a lot of assemblies
-# fail anyway so it didn't make much sense to schedule the bambus2 jobs
-# immediately. The Makefile can also be run without SBATCH by setting
-# USE_SBATCH=no. Please use 'make -j NROFJOBS' in that case to parallelize. If
-# one wants the commands for a specific assembly one can use 'make -Bn
-# path/to/contigs.fasta', e.g.:
-# 'make -Bn ma-out/velvet/noscaf/noscaf_31/contigs.fasta'
-include /gulo/glob/inod/github/metassemble/scripts/parameters.mk
+# run the metassemble scripts on an Illumina paired end library. An example of
+# usage can be found in the test/Makefile.
+
+SCRIPT_DIRECTORY:=$(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+include $(SCRIPT_DIRECTORY)/parameters.mk
 
 ################################
 # ----- general rules -------- #
@@ -25,8 +17,8 @@ include /gulo/glob/inod/github/metassemble/scripts/parameters.mk
 ################################
 # ------ quality trim -------- #
 ################################
-# qual-type 0 for Sanger quality (or illumina 1.8) type 2 for windowed trimming
-$(FASTQ_TRIM_IL): $(FASTQ1) $(FASTQ2)
+ifeq ($(DO_QTRIM),yes)
+$(FASTQ_TRIM_1): $(FASTQ1) $(FASTQ2)
 	mkdir -p $(PRC_READS_OUT)
 	sickle pe \
 		-f $(FASTQ1) \
@@ -35,6 +27,15 @@ $(FASTQ_TRIM_IL): $(FASTQ1) $(FASTQ2)
 		-o $(FASTQ_TRIM_1) \
 		-p $(FASTQ_TRIM_2) \
 		-s $(FASTQ_TRIM_IL).unpaired
+$(FASTQ_TRIM_2): $(FASTQ_TRIM_1)
+	if [ -f $@ ]; then \
+		touch $@; \
+	else \
+		exit 1; \
+	fi
+endif
+$(FASTQ_TRIM_IL): $(FASTQ_TRIM_1) $(FASTQ_TRIM_2)
+	mkdir -p $(PRC_READS_OUT)
 	shuffleSequences_fastq.pl $(FASTQ_TRIM_1) \
 		$(FASTQ_TRIM_2) \
 		$@

@@ -20,6 +20,7 @@ set -o nounset
 # From: http://tinyurl.com/85qrydz
 SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 source $SCRIPTDIR/../global-functions.incl
+MRKDUP=$SCRIPTDIR/../../bin/picard-tools-1.77/MarkDuplicates.jar
 
 # Default parameters
 RMTMPFILES=true
@@ -88,7 +89,6 @@ CURDIR=`pwd`
 
 check_prog bwa samtools genomeCoverageBed samtoafg
 
-MRKDUP=/bubo/home/h16/inod/glob/downloaded_software/picard-tools-1.77/MarkDuplicates.jar
 if [ ! -e $MRKDUP ]; then
     echo "$MRKDUP doesn't exist" >&2
     exit 1

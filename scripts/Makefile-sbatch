@@ -1,10 +1,13 @@
-include /gulo/glob/inod/github/metassemble/lib/sbatch.mk
-include /gulo/glob/inod/github/metassemble/scripts/parameters.mk
+SCRIPT_DIRECTORY:=$(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+SBATCH_JOB_SCRIPT:=$(SCRIPT_DIRECTORY)/../bin/sbatch_job
+include $(SCRIPT_DIRECTORY)/parameters.mk
+include $(SCRIPT_DIRECTORY)/../lib/sbatch.mk
 
 PROJECT:=b2010008
 
+# standard options for sbatch, mkdir for output file of slurm in case it
+# doesn't exist
 SBATCH_STD_OPT=-A $(PROJECT) --output=$@-slurm-%j.out -J $@ $(shell mkdir -p $(@D))
-# mkdir for output file of slurm in case it doesn't exist
 
 ################################
 # ----- general rules -------- #
