@@ -1,4 +1,4 @@
-SRS018585=letsgo 
+SRS018585=letsgo
 include data.mk
 
 include /gulo/glob/inod/github/metassemble/scripts/Makefile-sbatch
