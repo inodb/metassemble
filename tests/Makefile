@@ -1,7 +1,7 @@
 SRS018585=letsgo 
 include data.mk
 
-include /gulo/glob/inod/github/metassemble/scripts/Makefile
+include ../scripts/Makefile
 
 define diff_files
 @echo TEST $1

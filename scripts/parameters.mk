@@ -12,12 +12,18 @@ SCRIPTDIR?=/bubo/home/h16/inod/glob/github/metassemble/scripts
 ################################
 # ----- output parameters ---- #
 ################################
+# folder/file names
 OUT?=ma-out
 PRC_READS_OUT?=$(OUT)/processed-reads
 ASM_OUT?=$(OUT)/assemblies
 CONTIG_FILENAME?=ma-contigs.fa
 SCAF_FILENAME?=ma-scaffolds.fa
 MERGE_FILENAME?=ma-merge.fa
+# K values
+KMIN?=19
+KMAX?=75
+STEPSIZE?=2
+KNUMBERS=$(shell seq $(KMIN) $(STEPSIZE) $(KMAX))
 ################################
 # ---- /output parameters ---- #
 ################################
@@ -45,17 +51,14 @@ FASTQ_TRIM_OUT:=$(FASTQ_TRIM_1) \
 ################################
 # ---------- velveth --------- #
 ################################
-KMIN?=19
-KMAX?=75
-STEPSIZE?=2
 VELVET_OUT:=$(ASM_OUT)/velvet
 VELVETH_OUT:=$(VELVET_OUT)/velveth
 VELVET_OUT_NOSCAF:=$(VELVET_OUT)/noscaf
-VELVETH_OUT_SEQ:=$(shell echo $(VELVETH_OUT)/velveth_{$(KMIN)..$(KMAX)..$(STEPSIZE)}/Sequences)
-VELVETH_OUT_RD:=$(shell echo $(VELVETH_OUT)/velveth_{$(KMIN)..$(KMAX)..$(STEPSIZE)}/Roadmaps)
-VELVETG_OUT_NOSCAF:=$(shell echo $(VELVET_OUT_NOSCAF)/noscaf_{$(KMIN)..$(KMAX)..$(STEPSIZE)}/$(CONTIG_FILENAME))
+VELVETH_OUT_SEQ:=$(foreach i,$(KNUMBERS),$(VELVETH_OUT)/velveth_$(i)/Sequences)
+VELVETH_OUT_RD:=$(foreach i,$(KNUMBERS),$(VELVETH_OUT)/velveth_$(i)/Roadmaps)
+VELVETG_OUT_NOSCAF:=$(foreach i,$(KNUMBERS),$(VELVET_OUT_NOSCAF)/noscaf_$(i)/$(CONTIG_FILENAME))
 VELVET_OUT_SCAF:=$(VELVET_OUT)/scaf
-VELVETG_OUT_SCAF:=$(shell echo $(VELVET_OUT_SCAF)/scaf_{$(KMIN)..$(KMAX)..$(STEPSIZE)}/$(SCAF_FILENAME))
+VELVETG_OUT_SCAF:=$(foreach i,$(KNUMBERS),$(VELVET_OUT_SCAF)/scaf_$(i)/$(SCAF_FILENAME))
 ################################
 # --------- /velveth --------- #
 ################################
@@ -65,11 +68,11 @@ VELVETG_OUT_SCAF:=$(shell echo $(VELVET_OUT_SCAF)/scaf_{$(KMIN)..$(KMAX)..$(STEP
 ################################
 METAVELVET_OUT:=$(ASM_OUT)/metavelvet
 METAVELVET_OUT_NOSCAF:=$(METAVELVET_OUT)/noscaf
-METAVELVETH_OUT_NOSCAF:=$(shell echo $(METAVELVET_OUT_NOSCAF)/noscaf_{$(KMIN)..$(KMAX)..$(STEPSIZE)}/Sequences)
-METAVELVETG_OUT_NOSCAF:=$(shell echo $(METAVELVET_OUT_NOSCAF)/noscaf_{$(KMIN)..$(KMAX)..$(STEPSIZE)}/$(CONTIG_FILENAME))
+METAVELVETH_OUT_NOSCAF:=$(foreach i,$(KNUMBERS),$(METAVELVET_OUT_NOSCAF)/noscaf_$(i)/Sequences)
+METAVELVETG_OUT_NOSCAF:=$(foreach i,$(KNUMBERS),$(METAVELVET_OUT_NOSCAF)/noscaf_$(i)/$(CONTIG_FILENAME))
 METAVELVET_OUT_SCAF:=$(METAVELVET_OUT)/scaf
-METAVELVETH_OUT_SCAF:=$(shell echo $(METAVELVET_OUT_SCAF)/scaf_{$(KMIN)..$(KMAX)..$(STEPSIZE)}/Sequences)
-METAVELVETG_OUT_SCAF:=$(shell echo $(METAVELVET_OUT_SCAF)/scaf_{$(KMIN)..$(KMAX)..$(STEPSIZE)}/$(SCAF_FILENAME))
+METAVELVETH_OUT_SCAF:=$(foreach i,$(KNUMBERS),$(METAVELVET_OUT_SCAF)/scaf_$(i)/Sequences)
+METAVELVETG_OUT_SCAF:=$(foreach i,$(KNUMBERS),$(METAVELVET_OUT_SCAF)/scaf_$(i)/$(SCAF_FILENAME))
 ################################
 # ------- /meta-velvetg ------ #
 ################################
@@ -80,8 +83,8 @@ METAVELVETG_OUT_SCAF:=$(shell echo $(METAVELVET_OUT_SCAF)/scaf_{$(KMIN)..$(KMAX)
 RAY_OUT:=$(ASM_OUT)/ray
 RAY_OUT_NOSCAF:=$(RAY_OUT)/noscaf
 RAY_OUT_SCAF:=$(RAY_OUT)/scaf
-RAY_CONTIGS_OUT:=$(shell echo $(RAY_OUT_NOSCAF)/noscaf_{$(KMIN)..$(KMAX)..$(STEPSIZE)}/$(CONTIG_FILENAME))
-RAY_SCAFFOLDS_OUT:=$(shell echo $(RAY_OUT_SCAF)/scaf_{$(KMIN)..$(KMAX)..$(STEPSIZE)}/$(SCAF_FILENAME))
+RAY_CONTIGS_OUT:=$(foreach i,$(KNUMBERS),$(RAY_OUT_NOSCAF)/noscaf_$(i)/$(CONTIG_FILENAME))
+RAY_SCAFFOLDS_OUT:=$(foreach i,$(KNUMBERS),$(RAY_OUT_SCAF)/scaf_$(i)/$(SCAF_FILENAME))
 ################################
 # ---------- /ray -------------#
 ################################
