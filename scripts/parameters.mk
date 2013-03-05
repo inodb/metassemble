@@ -26,14 +26,15 @@ MERGE_FILENAME?=ma-merge.fa
 # ------ quality trim -------- #
 ################################
 DO_QTRIM?=yes
-FASTQ_TRIM_IL:=$(PRC_READS_OUT)/$(FASTQBASE).qtrim
 ifeq ($(DO_QTRIM),yes)
 FASTQ_TRIM_1:=$(PRC_READS_OUT)/$(FASTQBASE).1.qtrim
 FASTQ_TRIM_2:=$(PRC_READS_OUT)/$(FASTQBASE).2.qtrim
+FASTQ_TRIM_IL:=$(PRC_READS_OUT)/$(FASTQBASE).qtrim
 FASTQ_TRIM_UN:=$(FASTQ_TRIM_IL).unpaired
 else
 FASTQ_TRIM_1:=$(FASTQ1)
 FASTQ_TRIM_2:=$(FASTQ2)
+FASTQ_TRIM_IL?=$(PRC_READS_OUT)/$(FASTQBASE).qtrim
 endif
 FASTQ_TRIM_OUT:=$(FASTQ_TRIM_1) \
                 $(FASTQ_TRIM_2) \
@@ -133,6 +134,7 @@ ALLASMCONTIGS:=$(VELVETG_OUT_NOSCAF) \
 			  $(MINIMUS2_OUT_MERGE) \
 			  $(NEWBLER_OUT_MERGE) 
 BAMBUS2SCAFFOLDS=$(foreach contigs, $(ALLASMCONTIGS), $(shell dirname $(contigs))/bambus2/bambus2.scaffold.linear.fasta)
+BAMBUS2SCAFFOLDS_EXISTING=$(foreach contigs, $(wildcard $(ALLASMCONTIGS)), $(shell dirname $(contigs))/bambus2/bambus2.scaffold.linear.fasta)
 ALLASMSCAFFOLDS=$(VELVETG_OUT_SCAF) $(METAVELVETG_OUT_SCAF) $(BAMBUS2SCAFFOLDS) $(RAY_SCAFFOLDS_OUT)
 # Prints the full the paths of the assemblies files to stdout
 echoall:
@@ -154,11 +156,11 @@ all: velvet metavelvet ray minimus2 newbler
 qtrim: $(FASTQ_TRIM_IL)
 velvet: $(VELVETG_OUT_NOSCAF) $(VELVETG_OUT_SCAF)
 metavelvet: $(METAVELVETG_OUT_NOSCAF) $(METAVELVETG_OUT_SCAF)
-# Ray scaffolds are automatically made so contigs will be made as well
-# NOTE: contigs has been removed for sbatch rule, otherwise you'll have to
-# launch a seperate job to only create some symlinks.
+minimus2: $(MINIMUS2_OUT_MERGE)
+newbler: $(NEWBLER_OUT_MERGE)
 ray: $(RAY_CONTIGS_OUT) $(RAY_SCAFFOLDS_OUT)
 bambus2: $(BAMBUS2SCAFFOLDS)
+bambus2existing: $(BAMBUS2SCAFFOLDS_EXISTING)
 ################################
 #   /Rules to make assemblies  #
 ################################
@@ -191,6 +193,6 @@ cleannewbler:
 # /Rules to delete assemblies  #
 ################################
 
-.PHONY: all qtrim velvet metavelvet cleanall cleanasm cleanvelvetg cleanvelvet cleanmetavelvet cleanmetavelvetg cleanqtrim cleanminimus2 cleannewbler validateexisting keepcontigsonly echoexisting ray
+.PHONY: all qtrim velvet metavelvet cleanall cleanasm cleanvelvetg cleanvelvet cleanmetavelvet cleanmetavelvetg cleanqtrim cleanminimus2 cleannewbler validateexisting keepcontigsonly echoexisting ray bambus2existing bambus2
 # Takes quite some time to compute some of these, so you might want to decide yourself when to delete them by using make keepcontigsonly for instance.
 .PRECIOUS: $(VELVETH_OUT_RD) $(VELVETH_OUT_SEQ) $(FASTQ_TRIM_IL)

@@ -64,5 +64,5 @@ endif
 
 test: $(TESTDONEFILES)
 clean:
-	rm -f $(OUT).qtrim.done $(OUT).velvet.done $(OUT).metavelvet.done $(OUT).ray.done
+	rm -f $(TESTDONEFILES)
 .PHONY: testqtrim testvelvet testmetavelvet testminimus2 testnewbler testray test clean

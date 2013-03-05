@@ -63,7 +63,7 @@ The Makefile features four steps of the metagenomic assembly pipeline:
 
 3. Merging contigs
     - With cd-hit and minimus2. See [Angus](http://ged.msu.edu/angus/metag-assembly-2011/velvet-multik.html).
-        * [cd-hit-est](http://weizhong-lab.ucsd.edu/cd-hit/)
+        * [cd-hit-est](http://weizhong-lab.ucsd.edu/cd-hit/) NOTE: Increase MAX_SEQ when compiling. I put it at 3000000.
         * [Minimus2 from Amos](http://sourceforge.net/apps/mediawiki/amos/index.php?title=Minimus2)
         * [MUMmer 3.23](http://sourceforge.net/projects/mummer/files/)
     - Cut up contigs and merge with Newbler RunAssembly 2.6
@@ -93,7 +93,9 @@ you understand how to run your own subset of the available assembly strategies.
 If you want to change the resource usage per rule, change Makefile-sbatch
 accordingly. In the future I might add automatic computation of the resource
 usage. For assembly this is unfortunately still a problem, since it depends on
-the complexity of your sample and not just the filesize.
+the complexity of your sample and not just the filesize. The specified resource
+usage is for a library of ~1M and a mixed community of 60 bacteria and
+archaeae.
 
 To see which assemblies have been created:
 
