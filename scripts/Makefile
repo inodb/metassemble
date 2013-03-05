@@ -160,9 +160,9 @@ endef
 ################################
 # ----------- ray -------------#
 ################################
+# TODO: untested, now uses check points, not sure if output dir has to be deleted or not
 define RAY_RULE
-rm -rf $(@D) $(@D).cp
-mpiexec Ray -k $* -i $< -o $(@D) -show-memory-usage -write-checkpoints $(@D).cp
+mpiexec Ray -k $* -i $< -o $(@D) -show-memory-usage -read-write-checkpoints $(@D).cp
 endef
 # Create symbolic link for pair, name must end on fastq for Ray
 $(RAY_OUT)/pair.fastq: $(FASTQ_TRIM_IL)
