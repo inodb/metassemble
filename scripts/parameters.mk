@@ -81,6 +81,8 @@ METAVELVETG_OUT_SCAF:=$(foreach i,$(KNUMBERS),$(METAVELVET_OUT_SCAF)/scaf_$(i)/$
 ################################
 # ----------- ray -------------#
 ################################
+MPI_EXEC_CMD?=mpiexec
+EXTRA_RAY_PARAMETERS?=-show-memory-usage 
 RAY_OUT:=$(ASM_OUT)/ray
 RAY_OUT_NOSCAF:=$(RAY_OUT)/noscaf
 RAY_OUT_SCAF:=$(RAY_OUT)/scaf
