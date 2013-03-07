@@ -28,7 +28,7 @@ with [gnu-make-job-scheduler]. Furthermore GNU make makes sure intermediate
 output files don't have to be recomputed in case of an error.
 
 [metAMOS]: https://github.com/treangen/metAMOS/
-[gnu-make-job-scheduler]: https://github.com/inodb/gnu-make-sbatch-job-scheduler
+[gnu-make-job-scheduler]: https://github.com/inodb/gnu-make-job-scheduler
 
 2. Dependencies
 ===============
