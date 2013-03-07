@@ -58,12 +58,10 @@ then
     eval valgrind --tool=massif --massif-out-file=massif.out.${SLURM_JOB_NAME}.${SLURM_JOB_ID} $@
 else 
     eval $@ 2>&1
-    rc=$?
 fi
 T="$(($(date +%s)-T))"
 
 {
-    echo "## Return code: $rc"
     echo "## `date`"
     printf "## Elapsed time: %02d-%02d:%02d:%02d\n" "$((T/86400))" "$((T/3600%24))" "$((T/60%60))" "$((T%60))"
     echo "## FINISHED JOB $SLURM_JOB_ID - $SLURM_JOB_NAME"

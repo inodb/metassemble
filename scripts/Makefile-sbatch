@@ -1,7 +1,7 @@
 SCRIPT_DIRECTORY:=$(abspath $(dir $(lastword $(MAKEFILE_LIST))))
-SBATCH_JOB_SCRIPT:=$(SCRIPT_DIRECTORY)/../bin/sbatch_job
+SBATCH_JOB_SCRIPT:=$(SCRIPT_DIRECTORY)/../bin/wrapper_jobscript.sbatch
 include $(SCRIPT_DIRECTORY)/parameters.mk
-include $(SCRIPT_DIRECTORY)/../lib/sbatch.mk
+include $(SCRIPT_DIRECTORY)/../lib/scheduler.mk
 
 PROJECT:=b2010008
 
