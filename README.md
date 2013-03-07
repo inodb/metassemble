@@ -24,11 +24,11 @@ using MetAssemble instead is because it allows one to schedule parts of the
 assembly pipeline with sbatch. Different steps in the assembly pipeline require
 different resources. Velvet for instance runs on only one node, whereas Ray
 runs over multiple. MetAssemble allows you to specify resource usage per rule
-with [gnu-make-sbatch-tools]. Furthermore GNU make makes sure intermediate
+with [gnu-make-job-scheduler]. Furthermore GNU make makes sure intermediate
 output files don't have to be recomputed in case of an error.
 
 [metAMOS]: https://github.com/treangen/metAMOS/
-[gnu-make-sbatch-tools]: https://github.com/inodb/gnu-make-sbatch-tools
+[gnu-make-job-scheduler]: https://github.com/inodb/gnu-make-sbatch-job-scheduler
 
 2. Dependencies
 ===============
