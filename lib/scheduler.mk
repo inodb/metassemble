@@ -38,9 +38,9 @@ SPACE:= $(EMPTY) $(EMPTY)
 # Check if this is a dry run
 DRY_RUN:=$(filter %n n%,$(MAKEFLAGS))
 
-DIRECTORY?=$(abspath $(dir $(lastword $(MAKEFILE_LIST))))
-SBATCH_JOB_SCRIPT?=$(DIRECTORY)/wrapper_jobscript.sbatch
-PBS_JOB_SCRIPT?=$(DIRECTORY)/wrapper_jobscript.pbs
+JOB_SCRIPT_DIRECTORY?=$(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+SBATCH_JOB_SCRIPT?=$(JOB_SCRIPT_DIRECTORY)/../bin/wrapper_jobscript.sbatch
+PBS_JOB_SCRIPT?=$(JOB_SCRIPT_DIRECTORY)/../bin/wrapper_jobscript.pbs
 ##########################################
 # /Variables unchanged after declaration #
 ##########################################

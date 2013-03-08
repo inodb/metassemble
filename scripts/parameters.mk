@@ -4,7 +4,6 @@
 FASTQ1?=pair1.fastq
 FASTQ2?=pair2.fastq
 FASTQBASE?=pair
-SCRIPTDIR?=/bubo/home/h16/inod/glob/github/metassemble/scripts
 ################################
 # ----- /input parameters ---- #
 ################################
@@ -157,7 +156,7 @@ echoexisting:
 ################################
 #    Rules to make assemblies  #
 ################################
-all: velvet metavelvet ray minimus2 newbler
+all: velvet metavelvet ray minimus2 newbler bambus2
 qtrim: $(FASTQ_TRIM_IL)
 velvet: $(VELVETG_OUT_NOSCAF) $(VELVETG_OUT_SCAF)
 metavelvet: $(METAVELVETG_OUT_NOSCAF) $(METAVELVETG_OUT_SCAF)

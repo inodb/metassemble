@@ -1,9 +1,11 @@
 # MetAssemble Pipeline. This Makefile is NOT meant to build the scripts but to
 # run the metassemble scripts on an Illumina paired end library. An example of
-# usage can be found in the test/Makefile.
+# usage can be found in the examples/Makefile.
 
-SCRIPT_DIRECTORY:=$(abspath $(dir $(lastword $(MAKEFILE_LIST))))
-include $(SCRIPT_DIRECTORY)/parameters.mk
+ifndef METASSEMBLE_DIR
+$(error METASSEMBLE_DIR environment variable not set. Set with export METASSEMBLE_DIR=...)
+endif
+include $(METASSEMBLE_DIR)/scripts/parameters.mk
 
 ################################
 # ----- general rules -------- #
@@ -143,7 +145,7 @@ $(NEWBLER_OUT_RAY_NOSCAF)/$(MERGE_FILENAME): $(RAY_CONTIGS_OUT)
 # Bambus2
 define BAMBUS2_RULE
 mkdir -p $(@D)
-bash $(SCRIPTDIR)/validate/map-bwa-markduplicates.sh $(BAMBUS2_MAP_PARS) $(FASTQ_TRIM_1) $(FASTQ_TRIM_2) \
+bash $(SCRIPTDIR)/map/map-bwa-markduplicates.sh $(BAMBUS2_MAP_PARS) $(FASTQ_TRIM_1) $(FASTQ_TRIM_2) \
 	$(FASTQBASE) $< contigs $(@D)
 bash $(SCRIPTDIR)/assembly/scaf-asm-bambus2.sh \
 	$(@D)/contigs_${FASTQBASE}-smds.bam $< bambus2
@@ -162,6 +164,7 @@ endef
 ################################
 # TODO: untested, now uses check points, not sure if output dir has to be deleted or not
 define RAY_RULE
+rm -rf $(@D)
 $(MPI_EXEC_CMD) Ray -k $* -i $< -o $(@D) -read-write-checkpoints $(@D).cp $(EXTRA_RAY_PARAMETERS)
 endef
 # Create symbolic link for pair, name must end on fastq for Ray

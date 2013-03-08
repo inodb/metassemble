@@ -1,7 +1,13 @@
 SRS018585=letsgo
 include data.mk
 
-include /gulo/glob/inod/github/metassemble/scripts/Makefile-sbatch
+ifeq ($(SCHEDULER),sbatch)
+include scheduler-args-sbatch.mk
+else
+MPI_EXEC_CMD=aprun
+include scheduler-args-qsub.mk
+endif
+include ../scripts/metassemble-scheduler.mk
 
 $(OUT).qtrim.done: $(FASTQ_TRIM_IL)
 

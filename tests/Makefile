@@ -1,7 +1,7 @@
 SRS018585=letsgo 
 include data.mk
 
-include ../scripts/Makefile
+include ../scripts/metassemble.mk
 
 define diff_files
 @echo TEST $1
