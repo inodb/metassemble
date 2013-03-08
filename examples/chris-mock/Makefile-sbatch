@@ -41,4 +41,5 @@ SCHEDULER_RAY_MV_SCAF_OPT=-t 00:05:00 --qos=short -p core
 SCHEDULER_BAMBUS2_OPT=-t 01-00:00:00 -p node
 
 # Include the metassemble scheduler
+include args.mk
 include $(METASSEMBLE_DIR)/scripts/metassemble-scheduler.mk
