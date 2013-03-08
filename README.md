@@ -21,11 +21,11 @@ shouldn't have too many troubles getting it to run. The only other metagenomics
 assembly pipeline that I am aware of is [metAMOS], which seems to be an effort
 towards a more user-friendly approach if you are looking for that. A reason for
 using MetAssemble instead is because it allows one to schedule parts of the
-assembly pipeline with sbatch. Different steps in the assembly pipeline require
-different resources. Velvet for instance runs on only one node, whereas Ray
-runs over multiple. MetAssemble allows you to specify resource usage per rule
-with [gnu-make-job-scheduler]. Furthermore GNU make makes sure intermediate
-output files don't have to be recomputed in case of an error.
+assembly pipeline with sbatch or qsub. Different steps in the assembly pipeline
+require different resources. Velvet for instance runs on only one node, whereas
+Ray runs over multiple. MetAssemble allows you to specify resource usage per
+rule with [gnu-make-job-scheduler]. Furthermore GNU make makes sure
+intermediate output files don't have to be recomputed in case of an error.
 
 [metAMOS]: https://github.com/treangen/metAMOS/
 [gnu-make-job-scheduler]: https://github.com/inodb/gnu-make-job-scheduler
@@ -80,22 +80,22 @@ The Makefile features four steps of the metagenomic assembly pipeline:
 3. Installation
 ===============
 After installing all the dependencies the scripts should work as is. You can do
-a test run with `cd test && make test`, which downloads a small set from the
-HMP project and runs a subset of all different assembly strategies in the
+a test run with `cd test && make test`, which downloads a small set from
+the HMP project and runs a subset of all different assembly strategies in the
 MetAssemble pipeline.
 
 4. Usage
 ========
-See the example in test/. There is a test/Makefile and a test/Makefile-sbatch
-which set some input paramaters and then include scripts/Makefile and
-scripts/Makefile-sbatch respectively. Hopefully that is clear enough to help
-you understand how to run your own subset of the available assembly strategies.
-If you want to change the resource usage per rule, change Makefile-sbatch
-accordingly. In the future I might add automatic computation of the resource
-usage. For assembly this is unfortunately still a problem, since it depends on
-the complexity of your sample and not just the filesize. The specified resource
-usage is for a library of ~1M and a mixed community of 60 bacteria and
-archaeae.
+See example in examples/chris-mock. There is a Makefile and a Makefile-sbatch
+which set some input paramaters and then include scripts/metassemble.mk and
+scripts/metassemble-scheduler.mk respectively.  Hopefully that is clear enough
+to help you understand how to run your own subset of the available assembly
+strategies.  If you want to change the resource usage per rule, change
+Makefile-sbatch accordingly. In the future I might add automatic computation of
+the resource usage. For assembly this is unfortunately still a problem, since
+it depends on the complexity of your sample and not just the filesize. The
+specified resource usage is for a library of ~1M and a mixed community of 60
+bacteria and archaeae.
 
 To see which assemblies have been created:
 
