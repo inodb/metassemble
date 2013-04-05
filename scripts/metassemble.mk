@@ -6,6 +6,7 @@ ifndef METASSEMBLE_DIR
 $(error METASSEMBLE_DIR environment variable not set. Set with export METASSEMBLE_DIR=...)
 endif
 include $(METASSEMBLE_DIR)/scripts/parameters.mk
+SCRIPTDIR=$(METASSEMBLE_DIR)/scripts
 
 ################################
 # ----- general rules -------- #
