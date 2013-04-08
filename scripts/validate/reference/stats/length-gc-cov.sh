@@ -23,9 +23,6 @@ REF=$4
 RNAME=$5
 OUTDIR=$6
 
-#TODO: this is some weird uppmax thing that I don't quite follow yet
-module load biopython
-
 if [ ! -e $OUTDIR/${RNAME}_${QNAME}-smds.coverage ]; then
     bash $SCRIPTDIR/../../map-bwa-markduplicates.sh -c $Q1 $Q2 $QNAME $REF $RNAME $OUTDIR > /dev/null
 fi

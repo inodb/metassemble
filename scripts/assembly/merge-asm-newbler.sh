@@ -45,8 +45,6 @@ CURDIR=`pwd`
 
 create_dirs $OUTDIR
 
-module load biopython
 python $SCRIPTDIR/process-reads/cut-up-fasta.py ${@:2} > $OUTDIR/cut-up.fasta
-module load 454-dataanalysis/2.6
 runAssembly -force -o $OUTDIR $OUTDIR/cut-up.fasta
 rm $OUTDIR/cut-up.fasta

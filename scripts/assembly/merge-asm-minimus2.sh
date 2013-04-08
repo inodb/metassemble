@@ -56,7 +56,6 @@ echo 'Done'
 cd $OUTDIR
 echo 'Rename contigs (to make sure they are unique)'
 #TODO: this is some weird uppmax thing that I don't quite follow yet
-module load biopython
 python $SCRIPTDIR/../process-reads/reads-rename.py -oc 200 concatenated.fasta > concatenated-min200-rename.fasta
 echo `grep -c '>' concatenated.fasta` 'contigs'
 echo 'Done'
