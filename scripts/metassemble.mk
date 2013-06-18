@@ -150,7 +150,6 @@ bash $(SCRIPTDIR)/map/map-bwa-markduplicates.sh $(BAMBUS2_MAP_PARS) $(FASTQ_TRIM
 	$(FASTQBASE) $< contigs $(@D)
 bash $(SCRIPTDIR)/assembly/scaf-asm-bambus2.sh \
 	$(@D)/contigs_${FASTQBASE}-smds.bam $< bambus2
-rm $(@D)/contigs_${FASTQBASE}-smds.bam
 endef
 %/bambus2/bambus2.scaffold.linear.fasta: %/$(MERGE_FILENAME)
 	$(BAMBUS2_RULE)
