@@ -79,7 +79,9 @@ The Makefile features four steps of the metagenomic assembly pipeline:
 
 3. Installation
 ===============
-After installing all the dependencies the scripts should work as is. You can do
+After installing all the dependencies point METASSEMBLE_DIR environment variable
+to the root directory of this repository e.g.: 
+`export METASSEMBLE_DIR='~/gitrepos/metassemble'`. You can do
 a test run with `cd test && make test`, which downloads a small set from
 the HMP project and runs a subset of all different assembly strategies in the
 MetAssemble pipeline.
