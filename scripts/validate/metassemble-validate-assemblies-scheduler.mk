@@ -8,6 +8,18 @@ endif
 include $(METASSEMBLE_DIR)/scripts/metassemble.mk
 include $(METASSEMBLE_DIR)/lib/scheduler.mk
 
+################################
+# --------- ref stats ---------#
+################################
+$(OUT)/reference-stats/ref.stats: $(FASTQ1) $(FASTQ2) $(REF)
+	$(call schedule_with_deps_and_store_id,$(SCHEDULER_STD_OPT) $(SCHEDULER_REFMAP_OPT),make -ef $(MAKEFILE_VALIDATE) $@)
+################################
+# ---------/ref stats ---------#
+################################
+
+################################
+# --------- nucmer ------------#
+################################
 %/val/nucmer.coords: %/$(CONTIG_FILENAME) $(REF)
 	$(call schedule_with_deps_and_store_id,$(SCHEDULER_STD_OPT) $(SCHEDULER_NUCMER_OPT),make -ef $(MAKEFILE_VALIDATE) $@)
 %/val/nucmer.coords: %/$(SCAF_FILENAME) $(REF)
@@ -21,6 +33,22 @@ include $(METASSEMBLE_DIR)/lib/scheduler.mk
 	$(call schedule_with_deps_and_store_id,$(SCHEDULER_STD_OPT) $(SCHEDULER_MASMVALI_OPT),make -ef $(MAKEFILE_VALIDATE) $@)
 %/val/asm-stats.tsv: %/val/nucmer.coords $(OUT)/reference-stats/ref.stats $(PHYL_REF) %/$(MERGE_FILENAME)
 	$(call schedule_with_deps_and_store_id,$(SCHEDULER_STD_OPT) $(SCHEDULER_MASMVALI_OPT),make -ef $(MAKEFILE_VALIDATE) $@)
+################################
+# ---------/nucmer ------------#
+################################
+
+################################
+# --------- only map ----------#
+################################
+%/val/map/bowtie2/asm_$(FASTQBASE)-smds.bam: %/$(CONTIG_FILENAME) $(FASTQ_TRIM_1) $(FASTQ_TRIM_2)
+	$(call schedule_with_deps_and_store_id,$(SCHEDULER_STD_OPT) $(SCHEDULER_MAP_BOWTIE_OPT),make -ef $(MAKEFILE_VALIDATE) $@)
+%/val/map/bowtie2/asm_$(FASTQBASE)-smds.bam: %/$(MERGE_FILENAME) $(FASTQ_TRIM_1) $(FASTQ_TRIM_2)
+	$(call schedule_with_deps_and_store_id,$(SCHEDULER_STD_OPT) $(SCHEDULER_MAP_BOWTIE_OPT),make -ef $(MAKEFILE_VALIDATE) $@)
+%/val/map/bowtie2/asm_$(FASTQBASE)-smds.bam: %/$(SCAF_FILENAME) $(FASTQ_TRIM_1) $(FASTQ_TRIM_2)
+	$(call schedule_with_deps_and_store_id,$(SCHEDULER_STD_OPT) $(SCHEDULER_MAP_BOWTIE_OPT),make -ef $(MAKEFILE_VALIDATE) $@)
+################################
+# ---------/only map ----------#
+################################
 
 # Only validate existing, often something goes wrong in the assembly process so
 # this allows you to only validate those assemblies that succeeded in case one

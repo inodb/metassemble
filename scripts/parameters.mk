@@ -123,7 +123,7 @@ NEWBLER_OUT_MERGE:=$(NEWBLER_OUT_VELVET_MERGE) $(NEWBLER_OUT_METAVELVET_MERGE) $
 ################################
 # --------- bambus2 -----------#
 ################################
-BAMBUS2_MAP_PARS?=-t $(shell nproc)
+MAP_PARS?=-t $(shell nproc)
 ################################
 # -------- /bambus2 -----------#
 ################################
@@ -173,9 +173,9 @@ bambus2existing: $(BAMBUS2SCAFFOLDS_EXISTING)
 ################################
 #  Rules to delete assemblies  #
 ################################
-# Remove output, often one is only interested in keeping the assemblies, make keepcontigsonly allows you to do that
-#keepcontigsonly:
-#	-find $(ASM_OUT)/* -type f | grep -v $(foreach contigs,$(wildcard $(ALLASMCONTIGS)),-e $(contigs)) -e $(VELVET_OUT_NOSCAF)/noscaf_$(KMAX)/Sequences -e slurm | xargs rm
+# Remove intermediate output, only keep assemblies, slurm/pbs log outputs and possibly validations
+keepresultsonly:
+	-find $(ASM_OUT)/* -type f | grep -v $(foreach contigs,$(wildcard $(ALLASMCONTIGS) $(ALLASMSCAFFOLDS)),-e $(contigs)) -e pbs -e slurm -e val | xargs rm
 #clean:
 #	-rm -rf $(OUT)
 cleanasm:
@@ -198,6 +198,6 @@ cleannewbler:
 # /Rules to delete assemblies  #
 ################################
 
-.PHONY: all qtrim velvet metavelvet cleanall cleanasm cleanvelvetg cleanvelvet cleanmetavelvet cleanmetavelvetg cleanqtrim cleanminimus2 cleannewbler validateexisting keepcontigsonly echoexisting ray bambus2existing bambus2
+.PHONY: all qtrim velvet metavelvet cleanall cleanasm cleanvelvetg cleanvelvet cleanmetavelvet cleanmetavelvetg cleanqtrim cleanminimus2 cleannewbler validateexisting keepresultsonly echoexisting ray bambus2existing bambus2
 # Takes quite some time to compute some of these, so you might want to decide yourself when to delete them by using make keepcontigsonly for instance.
 .PRECIOUS: $(VELVETH_OUT_RD) $(VELVETH_OUT_SEQ) $(FASTQ_TRIM_IL)

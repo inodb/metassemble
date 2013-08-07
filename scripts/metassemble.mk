@@ -106,7 +106,7 @@ $(METAVELVET_OUT_SCAF)/scaf_%/$(SCAF_FILENAME): $(VELVETH_OUT)/velveth_%/Roadmap
 # Minimus2 rule merges all given prerequisite files
 define MINIMUS2_RULE
 mkdir -p $(@D)
-bash $(SCRIPTDIR)/assembly/merge-asm-minimus2.sh $(@D) $^
+bash -x $(SCRIPTDIR)/assembly/merge-asm-minimus2.sh $(@D) $^
 mv $(@D)/all-merged.fasta $@
 endef
 $(MINIMUS2_OUT_VELVET_NOSCAF)/$(MERGE_FILENAME): $(VELVETG_OUT_NOSCAF)
@@ -146,9 +146,9 @@ $(NEWBLER_OUT_RAY_NOSCAF)/$(MERGE_FILENAME): $(RAY_CONTIGS_OUT)
 # Bambus2
 define BAMBUS2_RULE
 mkdir -p $(@D)
-bash $(SCRIPTDIR)/map/map-bwa-markduplicates.sh $(BAMBUS2_MAP_PARS) $(FASTQ_TRIM_1) $(FASTQ_TRIM_2) \
+bash -x $(SCRIPTDIR)/map/map-bwa-markduplicates.sh $(MAP_PARS) $(FASTQ_TRIM_1) $(FASTQ_TRIM_2) \
 	$(FASTQBASE) $< contigs $(@D)
-bash $(SCRIPTDIR)/assembly/scaf-asm-bambus2.sh \
+bash -x $(SCRIPTDIR)/assembly/scaf-asm-bambus2.sh \
 	$(@D)/contigs_${FASTQBASE}-smds.bam $< bambus2
 endef
 %/bambus2/bambus2.scaffold.linear.fasta: %/$(MERGE_FILENAME)
@@ -162,10 +162,10 @@ endef
 ################################
 # ----------- ray -------------#
 ################################
-# TODO: untested, now uses check points, not sure if output dir has to be deleted or not
+# Run Ray, do not use checkpoints, changes when nr of cores changes etc
 define RAY_RULE
 rm -rf $(@D)
-$(MPI_EXEC_CMD) Ray -k $* -i $< -o $(@D) -read-write-checkpoints $(@D).cp $(EXTRA_RAY_PARAMETERS)
+$(MPI_EXEC_CMD) Ray -k $* -i $< -o $(@D) $(EXTRA_RAY_PARAMETERS)
 endef
 # Create symbolic link for pair, name must end on fastq for Ray
 $(RAY_OUT)/pair.fastq: $(FASTQ_TRIM_IL)
