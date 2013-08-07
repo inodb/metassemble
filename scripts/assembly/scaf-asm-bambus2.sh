@@ -82,8 +82,8 @@ java -jar $COLJAR \
 
 $SCRIPTDIR/../process-reads/flatten-fasta.sh $CONTIGS > $(basename $CONTIGS).flat
 samtoafg \
-    -m $(awk '{ if ($5 == "MEAN_INSERT_SIZE") { getline; print strtonum($5) } }' $BAMBASE.insertmetrics) \
-    -s $(awk '{ if ($6 == "STANDARD_DEVIATION") { getline; print strtonum($6) } }' $BAMBASE.insertmetrics) \
+    -m $(awk '{ if ($5 == "MEAN_INSERT_SIZE") { getline; printf "%i", strtonum($5) } }' $BAMBASE.insertmetrics) \
+    -s $(awk '{ if ($6 == "STANDARD_DEVIATION") { getline; printf "%i", strtonum($6) } }' $BAMBASE.insertmetrics) \
     -i 1 -e 1 \
     $(basename $CONTIGS).flat $BAMBASE-c.sam > $BAMBASE.afg
 rm -rf $BAMBASE.bnk
