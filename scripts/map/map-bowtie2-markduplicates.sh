@@ -6,7 +6,7 @@ duplicates.
 Usage:
     bash `basename $0` [options] <reads1> <reads2> <qname> <ref> <rname> <outdir>
 Options:
-    -t      Number of threads for bowtie2
+    -t      Number of threads for bowtie2 and the java garbage collector
     -c      Calculate coverage with BEDTools
     -k      Keep all output from intermediate steps.
     -h      This help documentation.
@@ -24,9 +24,10 @@ MRKDUP=$SCRIPTDIR/../../bin/picard-tools-1.77/MarkDuplicates.jar
 RMTMPFILES=true
 CALCCOV=false
 THREADS=1
+BOWTIE2_OPT=''
 
 # Parse options
-while getopts "a:khct:" opt; do
+while getopts "khct:p:" opt; do
     case $opt in
         c)
             CALCCOV=true
@@ -36,6 +37,9 @@ while getopts "a:khct:" opt; do
             ;;
         t)
             THREADS=$OPTARG
+            ;;
+        p)
+            BOWTIE2_OPT=$OPTARG
             ;;
         h)
             echo "$HELPDOC"
@@ -79,7 +83,7 @@ RNAME=$5
 OUTDIR=${6%/}
 CURDIR=`pwd`
 
-check_prog bowtie samtools genomeCoverageBed
+check_prog bowtie2 samtools genomeCoverageBed
 
 if [ ! -e $MRKDUP ]; then
     echo "$MRKDUP doesn't exist" >&2
@@ -101,14 +105,15 @@ then
 fi
 
 # Align Paired end and bam it
-bowtie2 -S -p $THREADS $REF -1 $Q1 -2 $Q2 > ${RNAME}_${QNAME}.sam
+bowtie2 ${BOWTIE2_OPT} -p $THREADS -x $REF -1 $Q1 -2 $Q2 -S ${RNAME}_${QNAME}.sam
 samtools faidx $REF
 samtools view -bt $REF.fai ${RNAME}_${QNAME}.sam > ${RNAME}_${QNAME}.bam
 samtools sort ${RNAME}_${QNAME}.bam ${RNAME}_${QNAME}-s
 samtools index ${RNAME}_${QNAME}-s.bam
 
 # Mark duplicates and sort
-java -jar $MRKDUP \
+java -XX:ParallelGCThreads=$THREADS \
+    -jar $MRKDUP \
     INPUT=${RNAME}_${QNAME}-s.bam \
     OUTPUT=${RNAME}_${QNAME}-smd.bam \
     METRICS_FILE=${RNAME}_${QNAME}-smd.metrics \
