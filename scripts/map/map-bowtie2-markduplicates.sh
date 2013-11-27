@@ -16,9 +16,11 @@ EOF
 set -o errexit
 set -o nounset
 # From: http://tinyurl.com/85qrydz
-SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-source $SCRIPTDIR/../global-functions.incl
-MRKDUP=$SCRIPTDIR/../../bin/picard-tools-1.77/MarkDuplicates.jar
+#SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+#source $SCRIPTDIR/../global-functions.incl
+#MRKDUP=$SCRIPTDIR/../../bin/picard-tools-1.77/MarkDuplicates.jar
+source $METASSEMBLE_DIR/scripts/global-functions.incl
+MRKDUP=$METASSEMBLE_DIR/bin/picard-tools-1.77/MarkDuplicates.jar
 
 # Default parameters
 RMTMPFILES=true
@@ -112,7 +114,7 @@ samtools sort ${RNAME}_${QNAME}.bam ${RNAME}_${QNAME}-s
 samtools index ${RNAME}_${QNAME}-s.bam
 
 # Mark duplicates and sort
-java -XX:ParallelGCThreads=$THREADS -XX:MaxPermSize=1g -XX:+CMSClassUnloadingEnabled \
+java -Xms1g -Xmx24g -XX:ParallelGCThreads=$THREADS -XX:MaxPermSize=1g -XX:+CMSClassUnloadingEnabled \
     -jar $MRKDUP \
     INPUT=${RNAME}_${QNAME}-s.bam \
     OUTPUT=${RNAME}_${QNAME}-smd.bam \
