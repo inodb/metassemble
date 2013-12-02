@@ -1,14 +1,12 @@
 #!/bin/bash
 HELPDOC=$( cat <<EOF
-Maps given paired library to given reference with bwa and uses picard to remove
+Maps given paired library to given reference with bowtie2 and uses picard to remove
 duplicates.
 
 Usage:
     bash `basename $0` [options] <reads1> <reads2> <qname> <ref> <rname> <outdir>
 Options:
-    -a      Under development: bwa aln options seperated by comma e.g. -a -o0,-e0,-n0,-k0
-            for exact matching
-    -t      Number of threads for bwa aln
+    -t      Number of threads for bowtie2 and the java garbage collector
     -c      Calculate coverage with BEDTools
     -k      Keep all output from intermediate steps.
     -h      This help documentation.
@@ -18,24 +16,21 @@ EOF
 set -o errexit
 set -o nounset
 # From: http://tinyurl.com/85qrydz
-SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-source $SCRIPTDIR/../global-functions.incl
-MRKDUP=$SCRIPTDIR/../../bin/picard-tools-1.77/MarkDuplicates.jar
+#SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+#source $SCRIPTDIR/../global-functions.incl
+#MRKDUP=$SCRIPTDIR/../../bin/picard-tools-1.77/MarkDuplicates.jar
+source $METASSEMBLE_DIR/scripts/global-functions.incl
+MRKDUP=$METASSEMBLE_DIR/bin/picard-tools-1.77/MarkDuplicates.jar
 
 # Default parameters
 RMTMPFILES=true
 CALCCOV=false
 THREADS=1
-BWA_ALN_OPT=""
+BOWTIE2_OPT=''
 
 # Parse options
-while getopts "a:khct:" opt; do
+while getopts "khct:p:" opt; do
     case $opt in
-        a)
-            #TODO: Proper bwa aln option catching?
-            #Example exact aln: -o0,-e0,-n0,-k0
-            BWA_ALN_OPT=`echo $OPTARG | sed 's/,/\ /g'`
-            ;;
         c)
             CALCCOV=true
             ;;
@@ -44,6 +39,9 @@ while getopts "a:khct:" opt; do
             ;;
         t)
             THREADS=$OPTARG
+            ;;
+        p)
+            BOWTIE2_OPT=$OPTARG
             ;;
         h)
             echo "$HELPDOC"
@@ -87,7 +85,7 @@ RNAME=$5
 OUTDIR=${6%/}
 CURDIR=`pwd`
 
-check_prog bwa samtools genomeCoverageBed
+check_prog bowtie2 samtools genomeCoverageBed
 
 if [ ! -e $MRKDUP ]; then
     echo "$MRKDUP doesn't exist" >&2
@@ -97,30 +95,27 @@ fi
 mkdir -p $OUTDIR
 cd $OUTDIR
 
-# Index reference, Burrows-Wheeler Transform
-if [ ! -e ${REF}.bwt ]
-then
-    bwa index $REF
-fi
-
 if [[ ! -s $Q1 || ! -s $Q2 ]]; then
     echo "$Q1 or $Q2 is empty" >&2
     exit 1
 fi
 
-# Find SA coordinates in the reads
-bwa aln $BWA_ALN_OPT -t $THREADS $REF -1 $Q1 > ${QNAME}1.sai
-bwa aln $BWA_ALN_OPT -t $THREADS $REF -2 $Q2 > ${QNAME}2.sai
+# Index reference, Burrows-Wheeler Transform
+if [ ! -e ${REF}.1.bt2 ]
+then
+    bowtie2-build $REF $REF
+fi
 
 # Align Paired end and bam it
-bwa sampe $REF ${QNAME}1.sai ${QNAME}2.sai $Q1 $Q2 > ${RNAME}_${QNAME}.sam
+bowtie2 ${BOWTIE2_OPT} -p $THREADS -x $REF -1 $Q1 -2 $Q2 -S ${RNAME}_${QNAME}.sam
 samtools faidx $REF
 samtools view -bt $REF.fai ${RNAME}_${QNAME}.sam > ${RNAME}_${QNAME}.bam
 samtools sort ${RNAME}_${QNAME}.bam ${RNAME}_${QNAME}-s
 samtools index ${RNAME}_${QNAME}-s.bam
 
 # Mark duplicates and sort
-java -jar $MRKDUP \
+java -Xms1g -Xmx24g -XX:ParallelGCThreads=$THREADS -XX:MaxPermSize=1g -XX:+CMSClassUnloadingEnabled \
+    -jar $MRKDUP \
     INPUT=${RNAME}_${QNAME}-s.bam \
     OUTPUT=${RNAME}_${QNAME}-smd.bam \
     METRICS_FILE=${RNAME}_${QNAME}-smd.metrics \
@@ -152,9 +147,7 @@ if $RMTMPFILES; then
        ${RNAME}_${QNAME}.bam \
        ${RNAME}_${QNAME}-smd.bam \
        ${RNAME}_${QNAME}-s.bam \
-       ${RNAME}_${QNAME}-s.bam.bai \
-       ${QNAME}1.sai \
-       ${QNAME}2.sai
+       ${RNAME}_${QNAME}-s.bam.bai
 fi
 
 cd $CURDIR
