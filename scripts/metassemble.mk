@@ -162,10 +162,11 @@ endef
 ################################
 # ----------- ray -------------#
 ################################
-# TODO: untested, now uses check points, not sure if output dir has to be deleted or not
+# Runs Ray. No checkpoints, because they can't be used if you change the number
+# of cores. Usually just causes problems
 define RAY_RULE
 rm -rf $(@D)
-$(MPI_EXEC_CMD) Ray -k $* -i $< -o $(@D) -read-write-checkpoints $(@D).cp $(EXTRA_RAY_PARAMETERS)
+$(MPI_EXEC_CMD) Ray -k $* -i $< -o $(@D) $(EXTRA_RAY_PARAMETERS)
 endef
 # Create symbolic link for pair, name must end on fastq for Ray
 $(RAY_OUT)/pair.fastq: $(FASTQ_TRIM_IL)
