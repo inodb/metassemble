@@ -162,12 +162,7 @@ endef
 ################################
 # ----------- ray -------------#
 ################################
-<<<<<<< HEAD
-# Runs Ray. No checkpoints, because they can't be used if you change the number
-# of cores. Usually just causes problems
-=======
 # Run Ray, do not use checkpoints, changes when nr of cores changes etc
->>>>>>> c03ed0d872afce2b7bd2071b9fc66aca0d65f00a
 define RAY_RULE
 rm -rf $(@D)
 $(MPI_EXEC_CMD) Ray -k $* -i $< -o $(@D) $(EXTRA_RAY_PARAMETERS)
