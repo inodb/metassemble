@@ -1,6 +1,17 @@
 # Input parameters
+ifndef METASSEMBLE_DIR
+$(error METASSEMBLE_DIR environment variable not set. Set with export METASSEMBLE_DIR=...)
+endif
 ASSEMBLY_MAKEFILE=$(METASSEMBLE_DIR)/scripts/metassemble.mk
-REF=/bubo/home/h16/inod/metagenomics/results/chris-mock/Project_ID793_dAmore/Sample_50ng_even/mapping/velvet35test/references.fa
+ifndef REF
+$(error REF variable not set. Set like REF=/path/to/references.fa)
+endif
+ifndef PHYL_REF
+$(error PHYL_REF variable not set. Set like PHYL_REF=/path/to/references.fa)
+endif
+ifndef CON_TO_REF
+$(error CON_TO_REF variable not set. Set like CON_TO_REF=/path/to/contigs_to_refs.tsv)
+endif
 
 include $(ASSEMBLY_MAKEFILE)
 
@@ -36,15 +47,15 @@ bash $(SCRIPTDIR)/validate/nucmer/run-nucmer.sh $(REF) $< $(@D)/nucmer
 	$(RUNNUCMERRULE)
 
 # Validate assemblies, run nucmer
-MASMVALIRULE=python /glob/inod/github/masm-vali/masmvali/validation.py $(@D)/nucmer.coords $(OUT)/reference-stats/ref.stats /glob/inod/github/masm-vali/masmvali/test/data/chris-mock/reference/phylogeny-references.tsv $< $(@D)
+MASMVALIRULE=python /glob/inod/github/masm-vali/masmvali/validation.py --contigs_to_refs_table $(CON_TO_REF) $(@D)/nucmer.coords $(OUT)/reference-stats/ref.stats $(PHYL_REF) $< $(@D)
 
-%/val/asm-stats.tsv: %/bambus2.scaffold.linear.fasta %/val/nucmer.coords $(REF)
+%/val/asm-stats.tsv: %/bambus2.scaffold.linear.fasta %/val/nucmer.coords $(REF) $(PHYL_REF) $(CON_TO_REF) $(OUT)/reference-stats/ref.stats
 	$(MASMVALIRULE)
-%/val/asm-stats.tsv: %/$(CONTIG_FILENAME) %/val/nucmer.coords $(REF)
+%/val/asm-stats.tsv: %/$(CONTIG_FILENAME) %/val/nucmer.coords $(REF) $(PHYL_REF) $(CON_TO_REF) $(OUT)/reference-stats/ref.stats
 	$(MASMVALIRULE)
-%/val/asm-stats.tsv: %/$(SCAF_FILENAME) %/val/nucmer.coords $(REF)
+%/val/asm-stats.tsv: %/$(SCAF_FILENAME) %/val/nucmer.coords $(REF) $(PHYL_REF) $(CON_TO_REF) $(OUT)/reference-stats/ref.stats
 	$(MASMVALIRULE)
-%/val/asm-stats.tsv: %/$(MERGE_FILENAME) %/val/nucmer.coords $(REF)
+%/val/asm-stats.tsv: %/$(MERGE_FILENAME) %/val/nucmer.coords $(REF) $(PHYL_REF) $(CON_TO_REF) $(OUT)/reference-stats/ref.stats
 	$(MASMVALIRULE)
 ################################
 # ---------/nucmer ------------#
@@ -78,5 +89,11 @@ validateexisting: \
 	$(subst $(MERGE_FILENAME),val/asm-stats.tsv,\
 	$(subst $(SCAF_FILENAME),val/asm-stats.tsv,\
 	$(subst $(CONTIG_FILENAME),val/asm-stats.tsv,$(wildcard $(ALLASMCONTIGS) $(ALLASMSCAFFOLDS))))))
+.PHONY:
+validateall: \
+	$(subst bambus2.scaffold.linear.fasta,val/asm-stats.tsv,\
+	$(subst $(MERGE_FILENAME),val/asm-stats.tsv,\
+	$(subst $(SCAF_FILENAME),val/asm-stats.tsv,\
+	$(subst $(CONTIG_FILENAME),val/asm-stats.tsv,$(ALLASMCONTIGS) $(ALLASMSCAFFOLDS)))))
 
-.PRECIOUS: %minimus2/val/nucmer.coords %newbler/val/nucmer.coords %bambus2/val/nucmer.coords %/val/nucmer.coords
+.PRECIOUS: %/val/nucmer.coords
