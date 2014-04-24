@@ -27,9 +27,10 @@ RMTMPFILES=true
 CALCCOV=false
 THREADS=1
 BOWTIE2_OPT=''
+JAVA_OPT=
 
 # Parse options
-while getopts "khct:p:" opt; do
+while getopts "khct:p:j:" opt; do
     case $opt in
         c)
             CALCCOV=true
@@ -43,6 +44,9 @@ while getopts "khct:p:" opt; do
         p)
             BOWTIE2_OPT=$OPTARG
             ;;
+        j)
+            JAVA_OPT=$OPTARG
+            ;;
         h)
             echo "$HELPDOC"
             exit 0
@@ -55,6 +59,11 @@ while getopts "khct:p:" opt; do
     esac
 done
 shift $(($OPTIND - 1)) 
+
+if [[ -z $JAVA_OPT ]]
+then
+    JAVA_OPT="-Xms2g -Xmx32g -XX:ParallelGCThreads=$THREADS -XX:MaxPermSize=2g -XX:+CMSClassUnloadingEnabled"
+fi
 
 if [ "$#" -ne "6" ]
 then
@@ -87,13 +96,17 @@ fi
 
 # Align Paired end and bam it
 bowtie2 ${BOWTIE2_OPT} -p $THREADS -x $REF -1 $Q1 -2 $Q2 -S $OUTDIR/${RNAME}_${QNAME}.sam
-samtools faidx $REF
+# Index reference for samtools
+if [ ! -e ${REF}.fai ]
+then
+    samtools faidx $REF
+fi
 samtools view -bt $REF.fai $OUTDIR/${RNAME}_${QNAME}.sam > $OUTDIR/${RNAME}_${QNAME}.bam
 samtools sort $OUTDIR/${RNAME}_${QNAME}.bam $OUTDIR/${RNAME}_${QNAME}-s
 samtools index $OUTDIR/${RNAME}_${QNAME}-s.bam
 
 # Mark duplicates and sort
-java -Xms1g -Xmx24g -XX:ParallelGCThreads=$THREADS -XX:MaxPermSize=1g -XX:+CMSClassUnloadingEnabled \
+java $JAVA_OPT \
     -jar $MRKDUP \
     INPUT=$OUTDIR/${RNAME}_${QNAME}-s.bam \
     OUTPUT=$OUTDIR/${RNAME}_${QNAME}-smd.bam \
@@ -108,16 +121,8 @@ samtools index $OUTDIR/${RNAME}_${QNAME}-smds.bam
 # Determine Genome Coverage and mean coverage per contig
 if $CALCCOV; then
     genomeCoverageBed -ibam $OUTDIR/${RNAME}_${QNAME}-smds.bam > $OUTDIR/${RNAME}_${QNAME}-smds.coverage
-    awk 'BEGIN {pc=""} 
-    {
-        c=$1;
-        if (c == pc) {
-            cov=cov+$2*$5;
-        } else {
-            print pc,cov;
-            cov=$2*$5;
-        pc=c}
-    } END {print pc,cov}' $OUTDIR/${RNAME}_${QNAME}-smds.coverage | tail -n +2 > $OUTDIR/${RNAME}_${QNAME}-smds.coverage.percontig
+    # generate table with length and coverage stats per contig (From http://github.com/BinPro/CONCOCT)
+    python $METASSEMBLE_DIR/scripts/validate/map/gen_contig_cov_per_bam_table.py --isbedfiles $REF $OUTDIR/${RNAME}_${QNAME}-smds.coverage > $OUTDIR/${RNAME}_${QNAME}-smds.coverage.percontig
 fi
 
 # Remove temp files
