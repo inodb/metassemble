@@ -16,10 +16,11 @@ Options:
     -c      Calculate coverage with BEDTools
     -k      Keep all output from intermediate steps.
     -h      This help documentation.
-    -p      Set mapping parameters for bowtie2
+    -p      Set mapping parameters for bowtie2, use quotes e.g. -p '-f' for
+            fasta
             (default: nothing i.e. bowtie default parameters)
-    -j      Set java parameters for MarkDuplicates
-            (default: -Xms2g -Xmx32g -XX:ParallelGCThreads=NR_THREADS -XX:MaxPermSize=2g -XX:+CMSClassUnloadingEnabled)
+    -j      Set java parameters for MarkDuplicates, use quotes
+            (default: '-Xms2g -Xmx32g -XX:ParallelGCThreads=<-t parameter> -XX:MaxPermSize=2g -XX:+CMSClassUnloadingEnabled')
 Example:
     map-bowtie2-markduplicates.sh -ct 16 reads_R1.fastq.gz reads_R2.fastq.gz pair contigs.fa asm bowtie2
 Output:
