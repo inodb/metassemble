@@ -5,11 +5,46 @@ duplicates.
 
 Usage:
     bash `basename $0` [options] <reads1> <reads2> <qname> <ref> <rname> <outdir>
+        
+        <reads1> fast{q,a,q.gz,a.gz} file with R1 reads
+        <reads2> fast{q,a,q.gz,a.gz} file with R2 reads
+        <qname>  name of reads - used for output name
+        <ref>    fasta file with reference fasta
+        <rname>  name of ref - used for output name
 Options:
     -t      Number of threads for bowtie2 and the java garbage collector
     -c      Calculate coverage with BEDTools
     -k      Keep all output from intermediate steps.
     -h      This help documentation.
+    -p      Set mapping parameters for bowtie2
+            (default: nothing i.e. bowtie default parameters)
+    -j      Set java parameters for MarkDuplicates
+            (default: -Xms2g -Xmx32g -XX:ParallelGCThreads=NR_THREADS -XX:MaxPermSize=2g -XX:+CMSClassUnloadingEnabled)
+Example:
+    map-bowtie2-markduplicates.sh -ct 16 reads_R1.fastq.gz reads_R2.fastq.gz pair contigs.fa asm bowtie2
+Output:
+    All output is in <outdir>:
+
+    <rname>_<qname>-smd.metrics             - the metrics output from removing
+                                              PCR duplicates with
+                                              MarkDuplicates (smd stands for,
+                                              samtools sort, followed by
+                                              MarkDuplicates)
+    <rname>_<qname>-smds.bam                - the bam output from mapping the
+                                              reads and removing the duplicates
+                                              with MarkDuplicates, followed by
+                                              one more time sorting
+    <rname>_<qname>-smds.flagstat           - results form samtools flagstat on
+                                              bam file, gives read mapping stats
+
+    If -c is specified (requires genomeCoverageBed and BioPython):
+
+    <rname>_<qname>-smds.coverage           - result from running
+                                              genomeCoverageBed -ibam on the
+                                              bam file, gives histogram
+                                              coverage per contig
+    <rname>_<qname>-smds.coverage.percontig - gives mean coverage per contig
+    
 EOF
 ) 
 
@@ -117,6 +152,7 @@ java $JAVA_OPT \
     REMOVE_DUPLICATES=TRUE
 samtools sort $OUTDIR/${RNAME}_${QNAME}-smd.bam $OUTDIR/${RNAME}_${QNAME}-smds
 samtools index $OUTDIR/${RNAME}_${QNAME}-smds.bam
+samtools flagstat $OUTDIR/${RNAME}_${QNAME}-smds.bam > $OUTDIR/${RNAME}_${QNAME}-smds.flagstat
 
 # Determine Genome Coverage and mean coverage per contig
 if $CALCCOV; then
