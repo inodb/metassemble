@@ -44,7 +44,7 @@ def cut_up_fasta(fastfiles, chunk_size, overlap):
 
     return 0
 
-def chunks(l, n=1999, o=1900):
+def chunks(l, n, o):
     """ Yield successive n-sized chunks from l with given overlap o between the
     chunks.
     """
@@ -70,8 +70,8 @@ def main(argv=None):
         print >>sys.stderr, "for help use --help"
         return 2
     # process options
-    chunk_size = 1000
-    overlap = 900
+    chunk_size = 1999
+    overlap = 1900
     for o, a in opts:
         if o in ("-h", "--help"):
             print __doc__
