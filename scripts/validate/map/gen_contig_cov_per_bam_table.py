@@ -11,7 +11,7 @@ import argparse
 import subprocess
 from signal import signal, SIGPIPE, SIG_DFL
 
-from Bio import SeqIO  # , SeqUtils
+from Bio import SeqIO, SeqUtils
 
 
 def get_gc_and_len_dict(fastafile):
@@ -22,7 +22,7 @@ def get_gc_and_len_dict(fastafile):
     for rec in SeqIO.parse(fastafile, "fasta"):
         out_dict[rec.id] = {}
         out_dict[rec.id]["length"] = len(rec.seq)
-        #out_dict[rec.id]["GC"] = SeqUtils.GC(rec.seq)
+        out_dict[rec.id]["GC"] = SeqUtils.GC(rec.seq)
 
     return out_dict
 
@@ -59,8 +59,8 @@ def get_bedcov_dict(bedcoverage):
     return out_dict
 
 
-def print_sample_columns(t):
-    sys.stdout.write(("\tcov_mean_sample_%s" * len(t)) % t)
+def print_sample_columns(t, header="cov_mean_sample_"):
+    sys.stdout.write((("\t" + header + "%s") * len(t)) % t)
 
 
 def print_input_table(fastadict, bedcovdicts, samplenames=None):
@@ -68,24 +68,27 @@ def print_input_table(fastadict, bedcovdicts, samplenames=None):
     docs."""
 
     # Header
-    sys.stdout.write("contig\tlength")
+    sys.stdout.write("contig\tlength\tGC")
     if samplenames is None:
         # Use index if no sample names given in header
-        print_sample_columns(tuple(range(len(bedcovdicts))))
+        print_sample_columns(tuple(range(len(bedcovdicts))), "cov_mean_sample_")
+        print_sample_columns(tuple(range(len(bedcovdicts))), "percentage_covered_sample_")
     else:
         # Use given sample names in header
         assert(len(samplenames) == len(bedcovdicts))
-        print_sample_columns(tuple(samplenames))
+        print_sample_columns(tuple(samplenames), "cov_mean_sample_")
+        print_sample_columns(tuple(samplenames), "percentage_covered_sample_")
     sys.stdout.write("\n")
 
     # Content
     assert(len(fastadict) > 0)
     for acc in fastadict:
         # fasta stats
-        sys.stdout.write("%s\t%s" %
+        sys.stdout.write("%s\t%d\t%f" %
             (
                 acc,
-                fastadict[acc]['length']
+                fastadict[acc]['length'],
+                fastadict[acc]['GC']
             )
         )
 
@@ -94,6 +97,15 @@ def print_input_table(fastadict, bedcovdicts, samplenames=None):
             try:
                 # Print cov mean
                 sys.stdout.write("\t%f" % (bcd[acc]["cov_mean"]))
+            except KeyError:
+                # No reads mapped to this contig
+                sys.stdout.write("\t0")
+
+        # Print percentage covered
+        for bcd in bedcovdicts:
+            try:
+                # Print percentage covered
+                sys.stdout.write("\t%f" % (bcd[acc]["percentage_covered"]))
             except KeyError:
                 # No reads mapped to this contig
                 sys.stdout.write("\t0")
