@@ -107,8 +107,12 @@ def print_input_table(fastadict, bedcovdicts, samplenames=None):
                 # Print percentage covered
                 sys.stdout.write("\t%f" % (bcd[acc]["percentage_covered"]))
             except KeyError:
-                # No reads mapped to this contig
-                sys.stdout.write("\t0")
+                if "cov_mean" in bcd[acc]:
+                    # all reads were covered
+                    sys.stdout.write("\t100")
+                else:
+                    # No reads mapped to this contig
+                    sys.stdout.write("\t0")
 
         sys.stdout.write("\n")
 
