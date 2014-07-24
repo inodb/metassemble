@@ -144,16 +144,24 @@ $(NEWBLER_OUT_RAY_NOSCAF)/$(MERGE_FILENAME): $(RAY_CONTIGS_OUT)
 # --------- bambus2 -----------#
 ################################
 # Bambus2
-define BAMBUS2_RULE
+define BAMBUS2_MAPPING_RULE
 mkdir -p $(@D)
 bash -x $(SCRIPTDIR)/map/map-bwa-markduplicates.sh $(MAP_PARS) $(FASTQ_TRIM_1) $(FASTQ_TRIM_2) \
 	$(FASTQBASE) $< contigs $(@D)
+endef
+define BAMBUS2_RULE
+mkdir -p $(@D)
 bash -x $(SCRIPTDIR)/assembly/scaf-asm-bambus2.sh \
 	$(@D)/contigs_${FASTQBASE}-smds.bam $< bambus2
 endef
-%/bambus2/bambus2.scaffold.linear.fasta: %/$(MERGE_FILENAME)
+	$(BAMBUS2_MAPPING_RULE)
+%/bambus2/contigs_$(FASTQBASE)-smds.bam: %/$(MERGE_FILENAME) $(FASTQ_TRIM_1) $(FASTQ_TRIM_2)
+	$(BAMBUS2_MAPPING_RULE)
+%/bambus2/contigs_$(FASTQBASE)-smds.bam: %/$(CONTIG_FILENAME) $(FASTQ_TRIM_1) $(FASTQ_TRIM_2)
+	$(BAMBUS2_MAPPING_RULE)
+%/bambus2/bambus2.scaffold.linear.fasta: %/$(MERGE_FILENAME) %/bambus2/contigs_$(FASTQBASE)-smds.bam
 	$(BAMBUS2_RULE)
-%/bambus2/bambus2.scaffold.linear.fasta: %/$(CONTIG_FILENAME)
+%/bambus2/bambus2.scaffold.linear.fasta: %/$(CONTIG_FILENAME) %/bambus2/contigs_$(FASTQBASE)-smds.bam
 	$(BAMBUS2_RULE)
 ################################
 # -------- /bambus2 -----------#
