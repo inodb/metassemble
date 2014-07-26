@@ -126,7 +126,7 @@ $(MINIMUS2_OUT_RAY_NOSCAF)/$(MERGE_FILENAME): $(RAY_CONTIGS_OUT)
 define NEWBLER_RULE
 mkdir -p $(@D)
 python $(SCRIPTDIR)/process-reads/cut-up-fasta.py $^ > $(@D)/velvet-noscaf-cut-up.fasta
-runAssembly -force -o $(@D) $(@D)/velvet-noscaf-cut-up.fasta
+runAssembly $(NEWBLER_CPUS) -force -o $(@D) $(@D)/velvet-noscaf-cut-up.fasta
 rm $(@D)/velvet-noscaf-cut-up.fasta
 mv $(@D)/454AllContigs.fna $@
 endef
