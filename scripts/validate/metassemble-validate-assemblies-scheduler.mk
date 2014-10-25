@@ -62,6 +62,19 @@ $(OUT)/reference-stats/ref.stats: $(FASTQ1) $(FASTQ2) $(REF)
 # ---------/only map ----------#
 ################################
 
+################################
+# --------- kraken ------------#
+################################
+%/kraken/kraken.tsv: %/$(CONTIG_FILENAME) $(KRAKEN_DB)
+	$(call schedule_with_deps_and_store_id,$(SCHEDULER_STD_OPT) $(SCHEDULER_KRAKEN_OPT),make -ef $(MAKEFILE_VALIDATE) $@)
+%/kraken/kraken.tsv: %/$(MERGE_FILENAME) $(KRAKEN_DB)
+	$(call schedule_with_deps_and_store_id,$(SCHEDULER_STD_OPT) $(SCHEDULER_KRAKEN_OPT),make -ef $(MAKEFILE_VALIDATE) $@)
+%/kraken/kraken.tsv: %/$(SCAF_FILENAME) $(KRAKEN_DB)
+	$(call schedule_with_deps_and_store_id,$(SCHEDULER_STD_OPT) $(SCHEDULER_KRAKEN_OPT),make -ef $(MAKEFILE_VALIDATE) $@)
+################################
+# ---------/kraken ------------#
+################################
+
 # Only validate existing, often something goes wrong in the assembly process so
 # this allows you to only validate those assemblies that succeeded in case one
 # is not able to get the other assemblies to complete.

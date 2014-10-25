@@ -80,6 +80,24 @@ endef
 # ---------/only map ----------#
 ################################
 
+################################
+# --------- kraken ------------#
+################################
+define KRAKEN_RULE
+mkdir -p $(@D)
+kraken --threads $(THREADS) $< --db $(KRAKEN_DB) > $@
+endef
+
+%/kraken/kraken.tsv: %/$(CONTIG_FILENAME) $(KRAKEN_DB)
+	$(KRAKEN_RULE)
+%/kraken/kraken.tsv: %/$(MERGE_FILENAME) $(KRAKEN_DB)
+	$(KRAKEN_RULE)
+%/kraken/kraken.tsv: %/$(SCAF_FILENAME) $(KRAKEN_DB)
+	$(KRAKEN_RULE)
+################################
+# ---------/kraken ------------#
+################################
+
 # Only validate existing, often something goes wrong in the assembly process so
 # this allows you to only validate those assemblies that succeeded in case one
 # is not able to get the other assemblies to complete.
